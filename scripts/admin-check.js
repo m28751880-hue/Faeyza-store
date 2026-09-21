@@ -1,0 +1,1 @@
+const fs=require('fs');const p=JSON.parse(fs.readFileSync('products.json','utf8'));const slugs=new Set();let bad=0;for(const x of p){if(!x.name||!x.slug||slugs.has(x.slug))bad++;slugs.add(x.slug)}console.log(`Admin data check: ${p.length} products, ${bad} invalid/duplicate records`);process.exitCode=bad?1:0;
