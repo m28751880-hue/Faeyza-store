@@ -12,7 +12,7 @@ const run = (cmd) => {
   catch (e) { failures.push(`${cmd}\n${e.stdout || ''}${e.stderr || ''}`); return ''; }
 };
 
-console.log('V46 Hobby-Compatible Production QA starting...');
+console.log('V51 Hobby-Compatible Production QA starting...');
 run('node scripts/validate.js');
 run('node scripts/admin-check.js');
 run('node scripts/generate.js');
@@ -109,10 +109,10 @@ const request = (port,p) => new Promise(resolve => {
   for (const p of smoke) { const status=await request(port,p); if (status !== 200) failures.push(`HTTP smoke ${p}: expected 200, got ${status}`); }
   await new Promise(r=>server.close(r));
   if (failures.length) {
-    console.error(`\nV42 FINAL PRODUCTION QA FAILED (${failures.length} issue(s))`);
+    console.error(`\nV51 FINAL PRODUCTION QA FAILED (${failures.length} issue(s))`);
     console.error(failures.join('\n---\n'));
     process.exit(1);
   }
-  console.log(`V46 FINAL PRODUCTION QA PASS: ${htmlFiles.length} HTML, ${locs.length} sitemap URLs, ${smoke.length} HTTP routes.`);
+  console.log(`V51 FINAL PRODUCTION QA PASS: ${htmlFiles.length} HTML, ${locs.length} sitemap URLs, ${smoke.length} HTTP routes.`);
   if (notes.length) console.log(notes.join('\n'));
 })();
