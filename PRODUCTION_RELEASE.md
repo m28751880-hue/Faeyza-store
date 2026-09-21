@@ -1,6 +1,6 @@
-# Faeyza Store V42 — Final Production Release
+# Faeyza Store V48 — Final Production Release
 
-V42 is the production-ready release package. It freezes the existing affiliate-review feature set and adds a deterministic release gate.
+V48 is the production-ready release package. It freezes the existing affiliate-review feature set and adds a deterministic release gate.
 
 ## Release gate
 
@@ -14,7 +14,7 @@ This runs catalog validation, admin validation, a clean production build, automa
 
 ## Deployment checklist
 
-1. Upload the V42 source to the repository used by Vercel.
+1. Upload the V48 source to the repository used by Vercel.
 2. Set production environment variables in Vercel; never commit secrets.
 3. Redeploy after environment changes.
 4. Confirm the production domain and `SITE_URL` match.
@@ -41,4 +41,4 @@ The demo catalog contains placeholder affiliate URLs for some products. Replace 
 
 ## Scope
 
-No automatic production deployment is performed by this release. V42 is a tested, production-ready package; deployment remains an explicit operator action.
+No automatic production deployment is performed by this release. V48 is a tested, production-ready package; deployment remains an explicit operator action.
