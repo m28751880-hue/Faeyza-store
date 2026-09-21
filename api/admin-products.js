@@ -34,7 +34,7 @@ module.exports = async function handler(req,res){
   try {
     if(req.method!=='POST' && req.method!=='GET') return res.status(405).json({ok:false,error:'Method not allowed'});
     let body={};
-    if(req.method==='POST'){ try { body=jsonBody(req, 1048576); } catch(e) { return res.status(400).json({ok:false,error:e.message}); } }
+    if(req.method==='POST'){ try { body=jsonBody(req, 4194304); } catch(e) { return res.status(400).json({ok:false,error:e.message}); } }
     if(req.method==='POST' && body.action==='login'){
       const password=adminPassword();
       if(!password || !safeEqual(String(body.password||''),password)) return res.status(401).json({ok:false,error:'Kata sandi admin salah.'});
