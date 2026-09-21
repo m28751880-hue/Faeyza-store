@@ -9,6 +9,27 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const slug=s=>String(s||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 const money=n=>new Intl.NumberFormat('id-ID',{style:'currency',currency:site.currency||'IDR',maximumFractionDigits:0}).format(n||0);
 const cats=[...new Set(products.map(p=>p.category).filter(Boolean))];
+// Materialize AI-generated data-URL gallery images into static assets so product HTML stays lightweight.
+const generatedAssetDir=path.join(root,'public','assets','generated');
+fs.rmSync(generatedAssetDir,{recursive:true,force:true});
+fs.mkdirSync(generatedAssetDir,{recursive:true});
+function materializeGeneratedImages(p){
+  const arr=Array.isArray(p.images)?p.images:[];
+  const out=[];
+  for(let i=0;i<arr.length;i++){
+    const v=String(arr[i]||'');
+    const m=v.match(/^data:(image\/[^;]+);base64,([A-Za-z0-9+/=]+)$/i);
+    if(!m){if(v)out.push(v);continue;}
+    const ext=m[1].toLowerCase().includes('webp')?'webp':m[1].includes('png')?'png':'jpg';
+    const file=`${slug(p.slug||p.name)}-ai-${i+1}.${ext}`;
+    fs.writeFileSync(path.join(generatedAssetDir,file),Buffer.from(m[2],'base64'));
+    out.push(`/assets/generated/${file}`);
+  }
+  return out;
+}
+for(const p of allProducts){
+  if(Array.isArray(p.images)&&p.images.length){p.images=materializeGeneratedImages(p);}
+}
 const articleCfg=JSON.parse(fs.readFileSync(path.join(root,'data','article-topics.json'),'utf8'));
 const articleTopics=Array.isArray(articleCfg.topics)?articleCfg.topics:[];
 const url=(type,x)=> type==='product'?`${site.baseUrl}/produk/${encodeURIComponent(x.slug)}/`:`${site.baseUrl}/${type}/${slug(x)}/`;
@@ -183,4 +204,4 @@ const priorityFor=u=>u===site.baseUrl+'/'?'1.0':u.includes('/produk/')?'0.9':u.i
 write(path.join(pub,'sitemap.xml'),`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${uniqueUrls.map(u=>`<url><loc>${esc(u)}</loc><lastmod>${lastmod}</lastmod><changefreq>weekly</changefreq><priority>${priorityFor(u)}</priority></url>`).join('')}</urlset>`);
 const pubDate=new Date(`${lastmod}T00:00:00Z`).toUTCString();
 write(path.join(pub,'feed.xml'),`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>${esc(site.name)}</title><link>${site.baseUrl}/</link><description>${esc(site.description)}</description><language>id-ID</language><lastBuildDate>${esc(pubDate)}</lastBuildDate>${products.slice(0,20).map(p=>`<item><title>${esc(p.name)}</title><link>${url('product',p)}</link><guid isPermaLink="true">${url('product',p)}</guid><description>${esc(p.summary)}</description><pubDate>${esc(pubDate)}</pubDate></item>`).join('')}</channel></rss>`);
-console.log(`Generated V46 Hobby-Compatible Production: ${products.length} product pages, ${cats.length} category pages, ${generatedArticles.length} article pages, ${uniqueUrls.length} sitemap URLs.`);
+console.log(`Generated V48 Hobby-Compatible Production: ${products.length} product pages, ${cats.length} category pages, ${generatedArticles.length} article pages, ${uniqueUrls.length} sitemap URLs.`);
