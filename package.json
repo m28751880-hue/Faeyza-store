@@ -1,0 +1,18 @@
+{
+  "name": "faeyza-store-affiliate",
+  "version": "46.0.0",
+  "private": true,
+  "scripts": {
+    "import": "node scripts/import.js",
+    "build": "node scripts/generate.js && node scripts/seo-audit.js",
+    "validate": "node scripts/validate.js",
+    "seo-audit": "node scripts/seo-audit.js",
+    "admin": "node scripts/admin-check.js",
+    "qa": "node scripts/qa.js",
+    "production-check": "npm run validate && npm run admin && npm run build && npm run qa && node scripts/production-check.js",
+    "release": "npm run production-check"
+  },
+  "engines": {
+    "node": "24.x"
+  }
+}

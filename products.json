@@ -1,0 +1,140 @@
+[
+  {
+    "slug": "keyboard-mekanikal-mengetik",
+    "name": "Keyboard Mekanikal untuk Mengetik",
+    "category": "Keyboard",
+    "brand": "ContohBrand",
+    "price": 999000,
+    "oldPrice": 1299000,
+    "rating": 4.8,
+    "reviews": 2300,
+    "icon": "⌨️",
+    "tag": "Best Seller",
+    "summary": "Keyboard mekanikal dengan layout nyaman untuk mengetik, bekerja, dan penggunaan harian.",
+    "pros": [
+      "Feedback tombol terasa jelas",
+      "Cocok untuk mengetik lama",
+      "Desain ringkas"
+    ],
+    "cons": [
+      "Harga lebih tinggi dari keyboard membran",
+      "Tidak semua orang suka suara mekanikal"
+    ],
+    "specs": {
+      "Layout": "Tenkeyless",
+      "Koneksi": "USB / Wireless",
+      "Switch": "Mechanical",
+      "Backlight": "Ya",
+      "Garansi": "Sesuai penjual"
+    },
+    "affiliateUrl": "PASTE_LINK_AFFILIATE_DI_SINI"
+  },
+  {
+    "slug": "mouse-wireless-silent",
+    "name": "Mouse Wireless Silent",
+    "category": "Mouse",
+    "brand": "ContohBrand",
+    "price": 279000,
+    "oldPrice": 399000,
+    "rating": 4.7,
+    "reviews": 1800,
+    "icon": "🖱️",
+    "tag": "Paling Laris",
+    "summary": "Mouse wireless dengan klik senyap untuk kerja di rumah, kantor, atau ruang bersama.",
+    "pros": [
+      "Klik relatif senyap",
+      "Wireless",
+      "Ringan"
+    ],
+    "cons": [
+      "Fitur gaming terbatas",
+      "Baterai perlu diganti/diisi"
+    ],
+    "specs": {
+      "Koneksi": "Wireless",
+      "Sensor": "Optical",
+      "DPI": "Hingga 2000 DPI",
+      "Baterai": "Tergantung varian",
+      "Garansi": "Sesuai penjual"
+    },
+    "affiliateUrl": "PASTE_LINK_AFFILIATE_DI_SINI"
+  },
+  {
+    "slug": "laptop-stand-aluminium",
+    "name": "Laptop Stand Aluminium",
+    "category": "Desk Setup",
+    "brand": "ContohBrand",
+    "price": 349000,
+    "oldPrice": 449000,
+    "tag": "Pilihan Populer",
+    "summary": "Stand laptop aluminium untuk membantu mengatur posisi layar saat bekerja.",
+    "pros": [
+      "Konstruksi aluminium",
+      "Ringkas dan mudah dipindahkan",
+      "Membantu elevasi layar"
+    ],
+    "cons": [
+      "Kompatibilitas bergantung ukuran laptop",
+      "Sudut dan tinggi mengikuti desain stand"
+    ],
+    "specs": {
+      "Material": "Aluminium",
+      "Kompatibilitas": "Laptop",
+      "Warna": "Tergantung varian"
+    },
+    "affiliateUrl": "Material=Aluminium|Kompatibilitas=Laptop|Warna=Tergantung varian",
+    "icon": "💻"
+  },
+  {
+    "slug": "desk-mat-minimalis",
+    "name": "Desk Mat Minimalis",
+    "category": "Desk Setup",
+    "brand": "ContohBrand",
+    "price": 199000,
+    "oldPrice": 249000,
+    "tag": "Pilihan Populer",
+    "summary": "Desk mat untuk membantu membuat area kerja lebih rapi dan nyaman.",
+    "pros": [
+      "Menambah area permukaan kerja",
+      "Tampilan minimalis",
+      "Mudah dibersihkan"
+    ],
+    "cons": [
+      "Membutuhkan ruang meja yang cukup",
+      "Ukuran dan material bergantung varian"
+    ],
+    "specs": {
+      "Material": "Tergantung varian",
+      "Ukuran": "Tergantung varian"
+    },
+    "affiliateUrl": "Material=Tergantung varian|Ukuran=Tergantung varian",
+    "icon": "🖥️"
+  },
+  {
+    "slug": "headset-meeting-wireless",
+    "name": "Headset Meeting Wireless",
+    "category": "Audio",
+    "brand": "ContohBrand",
+    "price": 599000,
+    "oldPrice": 699000,
+    "rating": 4.6,
+    "reviews": 950,
+    "icon": "🎧",
+    "tag": "Untuk Meeting",
+    "summary": "Headset wireless untuk meeting dan panggilan kerja sehari-hari.",
+    "pros": [
+      "Wireless",
+      "Praktis untuk meeting",
+      "Mikrofon terintegrasi"
+    ],
+    "cons": [
+      "Harga lebih tinggi dibanding headset kabel"
+    ],
+    "specs": {
+      "Koneksi": "Bluetooth",
+      "Mikrofon": "Terintegrasi",
+      "Baterai": "Tergantung varian"
+    },
+    "affiliateUrl": "PASTE_LINK_AFFILIATE_DI_SINI"
+  }
+]
