@@ -1,0 +1,18 @@
+{
+  "topics": [
+    {
+      "type": "guide",
+      "slugPrefix": "panduan",
+      "title": "Panduan Memilih {category} untuk Kerja",
+      "description": "Panduan memilih {category} untuk kebutuhan kerja berdasarkan data produk, spesifikasi, harga, dan pertimbangan yang tersedia di Faeyza Store.",
+      "label": "Panduan"
+    },
+    {
+      "type": "checklist",
+      "slugPrefix": "checklist",
+      "title": "Checklist Sebelum Membeli {category}",
+      "description": "Checklist praktis sebelum membeli {category}, dengan fokus pada spesifikasi, kompatibilitas, harga, garansi, dan kebutuhan kerja.",
+      "label": "Checklist"
+    }
+  ]
+}
