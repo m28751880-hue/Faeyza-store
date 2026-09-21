@@ -10,7 +10,7 @@ function dataUrlParts(dataUrl){const m=String(dataUrl||'').match(/^data:(image\/
 async function generatePoseImage(imageData,prompt){
   const src=dataUrlParts(imageData);if(!src)throw new Error('Foto referensi harus berupa data URL gambar.');
   const form=new FormData();
-  form.append('model',process.env.OPENAI_IMAGE_MODEL||'gpt-image-2.5-sunburst');
+  form.append('model',process.env.OPENAI_IMAGE_MODEL||'gpt-image-2');
   form.append('image',new Blob([Buffer.from(src.base64,'base64')],{type:src.mime}),'reference.jpg');
   form.append('prompt',prompt);
   form.append('size','1024x1536');
@@ -63,7 +63,7 @@ ${JSON.stringify(input)}\n\nURL PRODUK: ${p.affiliateUrl||'(tidak ada)'}`;
     const raw=cleanJsonText(extractText(d));let content;try{content=JSON.parse(raw)}catch{throw new Error('Respons AI bukan JSON valid.')}
     let imageResult={images:[],notice:''};
     if(b.generateImages!==false){try{imageResult=await generateProductImages(p,Math.max(3,Math.min(5,Number(b.imageCount)||3)))}catch(e){imageResult={images:[],notice:`Foto AI gagal dibuat: ${e.message}`}}}
-    return res.status(200).json({ok:true,provider:'openai',model,content,images:imageResult.images,imageNotice:imageResult.notice||'',imageModel:process.env.OPENAI_IMAGE_MODEL||'gpt-image-2.5-sunburst'});
+    return res.status(200).json({ok:true,provider:'openai',model,content,images:imageResult.images,imageNotice:imageResult.notice||'',imageModel:process.env.OPENAI_IMAGE_MODEL||'gpt-image-2'});
   }catch(e){
     return res.status(200).json({ok:true,provider:'template',fallback:true,content:fallback(p),images:[],notice:`AI gagal digunakan: ${e.message}. Draft template aman dibuat sebagai fallback.`});
   }
