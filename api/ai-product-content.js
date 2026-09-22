@@ -7,21 +7,48 @@ function cleanJsonText(t){return String(t||'').replace(/^```(?:json)?\s*/i,'').r
 function safeSlug(v){return String(v||'produk').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,80)||'produk'}
 function fallback(p){const name=p.name||'Produk baru',cat=p.category||'Workspace',brand=p.brand||'';const desc=p.sourceDescription||p.summary||`Informasi ${name} untuk membantu membandingkan fitur, spesifikasi, harga, dan kecocokannya.`;return {summary:desc,pros:[`Data produk dirangkum dari informasi yang tersedia`,`Dapat dibandingkan dengan produk sejenis`,`Relevan untuk kategori ${cat}`],cons:['Harga dan ketersediaan dapat berubah di toko','Periksa spesifikasi dan varian pada halaman sumber sebelum membeli'],specs:Object.assign({Kategori:cat},p.specs||{}),faq:[{q:`Apa yang perlu diperhatikan sebelum membeli ${name}?`,a:'Periksa varian, kompatibilitas, spesifikasi, harga, garansi, ongkir, dan kebijakan retur pada halaman toko.'},{q:`Apakah ${name} cocok untuk kerja?`,a:`Kecocokan bergantung pada kebutuhan dan spesifikasi yang tersedia. Gunakan data produk sebagai dasar perbandingan.`}],seoTitle:`${name} — Review, Spesifikasi & Cek Harga | Faeyza Store`,metaDescription:`Lihat informasi ${name}${brand?` dari ${brand}`:''}, spesifikasi, kelebihan, pertimbangan, dan cek harga di Faeyza Store.`,caption:`${name} — cek review, spesifikasi, dan harga terbaru di Faeyza Store.`}}
 function dataUrlParts(dataUrl){const m=String(dataUrl||'').match(/^data:(image\/[a-z0-9.+-]+);base64,([A-Za-z0-9+/=]+)$/i);return m?{mime:m[1],base64:m[2]}:null}
-async function generatePoseImages(imageData,prompt,count){
+async function requestImageEdit(imageData,prompt,model,n=1){
   const src=dataUrlParts(imageData);if(!src)throw new Error('Foto referensi harus berupa data URL gambar.');
-  const form=new FormData();
-  form.append('model',process.env.OPENAI_IMAGE_MODEL||'gpt-image-2');
-  form.append('image',new Blob([Buffer.from(src.base64,'base64')],{type:src.mime}),'reference.jpg');
-  form.append('prompt',prompt);
-  form.append('size','1024x1536');
-  form.append('quality',process.env.OPENAI_IMAGE_QUALITY||'low');
-  form.append('output_format','webp');
-  form.append('output_compression','60');
-  form.append('n',String(count));
-  const r=await fetch('https://api.openai.com/v1/images/edits',{method:'POST',headers:{Authorization:`Bearer ${process.env.OPENAI_API_KEY}`},body:form});
-  const d=await r.json();if(!r.ok)throw new Error(d?.error?.message||`OpenAI Image HTTP ${r.status}`);
+  const makeForm=(field)=>{
+    const form=new FormData();
+    form.append('model',model);
+    form.append(field,new Blob([Buffer.from(src.base64,'base64')],{type:src.mime}),'reference.jpg');
+    form.append('prompt',prompt);
+    form.append('size','1024x1536');
+    form.append('quality',process.env.OPENAI_IMAGE_QUALITY||'low');
+    form.append('output_format','webp');
+    form.append('output_compression','60');
+    form.append('n',String(n));
+    return form;
+  };
+  let r=await fetch('https://api.openai.com/v1/images/edits',{method:'POST',headers:{Authorization:`Bearer ${process.env.OPENAI_API_KEY}`},body:makeForm('image[]')});
+  let d=await r.json().catch(()=>({}));
+  if(!r.ok && /image\[\]/i.test(String(d?.error?.message||''))){
+    r=await fetch('https://api.openai.com/v1/images/edits',{method:'POST',headers:{Authorization:`Bearer ${process.env.OPENAI_API_KEY}`},body:makeForm('image')});
+    d=await r.json().catch(()=>({}));
+  }
+  if(!r.ok)throw new Error(d?.error?.message||`OpenAI Image HTTP ${r.status}`);
   const images=(Array.isArray(d?.data)?d.data:[]).map(x=>x?.b64_json).filter(Boolean).map(b64=>`data:image/webp;base64,${b64}`);
   if(!images.length)throw new Error('OpenAI tidak mengembalikan gambar.');
+  return images;
+}
+async function generatePoseImages(imageData,prompt,count){
+  const wanted=Math.max(3,Math.min(5,Number(count)||3));
+  const model=process.env.OPENAI_IMAGE_MODEL||'gpt-image-2';
+  try{
+    const batch=await requestImageEdit(imageData,prompt,model,wanted);
+    if(batch.length>=wanted)return batch.slice(0,wanted);
+  }catch(batchError){
+    // Some API gateways/accounts accept image editing but are less reliable with n>1.
+    // Retry one image per request so 3–5 requested outputs can still be collected.
+  }
+  const jobs=Array.from({length:wanted},(_,i)=>requestImageEdit(imageData,`${prompt} Variasi pose ke-${i+1}: gunakan pose dan sudut kamera yang berbeda dari variasi lain.`,model,1));
+  const settled=await Promise.allSettled(jobs);
+  const images=settled.filter(x=>x.status==='fulfilled').flatMap(x=>x.value||[]).slice(0,wanted);
+  if(!images.length){
+    const errors=settled.filter(x=>x.status==='rejected').map(x=>x.reason?.message).filter(Boolean);
+    throw new Error(errors[0]||'OpenAI tidak mengembalikan gambar.');
+  }
   return images;
 }
 async function generateProductImages(p,count){
