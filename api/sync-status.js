@@ -1,6 +1,7 @@
+const { safeEqual } = require('../security');
 module.exports = async function handler(req, res) {
   const secret = process.env.CRON_SECRET;
-  const supplied = req.headers.authorization === `Bearer ${secret}` || req.headers['x-cron-secret'] === secret;
+  const h=String(req.headers.authorization||''); const m=h.match(/^Bearer\s+(.+)$/i); const supplied = (m&&safeEqual(m[1],secret)) || safeEqual(String(req.headers['x-cron-secret']||''),secret);
   if (!secret || !supplied) return res.status(401).json({ ok: false, error: 'Unauthorized' });
   return res.status(200).json({
     ok: true,

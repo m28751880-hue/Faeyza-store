@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const { safeEqual } = require('../security');
 
 async function redisCommand(command) {
   const base = process.env.UPSTASH_REDIS_REST_URL;
@@ -8,7 +9,7 @@ async function redisCommand(command) {
   if (!r.ok) throw new Error(`Redis HTTP ${r.status}`);
   return (await r.json()).result;
 }
-function auth(req){ const s=process.env.PROVIDER_SYNC_SECRET; return s && ((req.headers.authorization===`Bearer ${s}`)||req.headers['x-provider-sync-secret']===s); }
+function auth(req){ const s=process.env.PROVIDER_SYNC_SECRET; if(!s) return false; const h=String(req.headers.authorization||''); const m=h.match(/^Bearer\s+(.+)$/i); return (m&&safeEqual(m[1],s)) || safeEqual(String(req.headers['x-provider-sync-secret']||''),s); }
 function num(v){ const n=Number(v); return Number.isFinite(n)&&n>=0?n:0; }
 function slug(v){ return String(v||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
 function sign(path, query, body, secret){
