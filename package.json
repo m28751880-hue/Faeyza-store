@@ -1,6 +1,6 @@
 {
   "name": "faeyza-store-affiliate",
-  "version": "52.0.0",
+  "version": "54.0.0",
   "private": true,
   "scripts": {
     "import": "node scripts/import.js",
