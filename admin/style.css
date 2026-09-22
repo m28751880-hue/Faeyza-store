@@ -11,3 +11,6 @@ body{font-family:system-ui,sans-serif;margin:0;background:#f6f7f9;color:#18202a}
 .marketplace-badge{font-weight:700;margin-bottom:8px}.marketplace-badge.verified{border-left:4px solid currentColor;padding-left:8px}.marketplace-badge.unverified{border-left:4px solid currentColor;padding-left:8px}
 .marketplace-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.marketplace-grid span{padding:8px;border-radius:10px;background:rgba(127,127,127,.08)}
 @media(max-width:700px){.marketplace-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.marketplace-source{display:flex;gap:12px;align-items:center;margin:8px 0 12px;padding:8px;border-radius:12px;background:rgba(127,127,127,.06)}.marketplace-source img{width:72px;height:72px;object-fit:cover;border-radius:10px;background:#fff}.marketplace-source div{min-width:0}
+.source-detect{margin:8px 0;padding:10px;border:1px solid #dfe3e8;border-radius:10px;background:#fafafa;line-height:1.5;font-size:13px;word-break:break-word}.source-detect span{color:#667085}.source-detect small{color:#667085}.marketplace-status{overflow-wrap:anywhere}
