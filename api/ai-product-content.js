@@ -7,7 +7,7 @@ function cleanJsonText(t){return String(t||'').replace(/^```(?:json)?\s*/i,'').r
 function safeSlug(v){return String(v||'produk').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,80)||'produk'}
 function fallback(p){const name=p.name||'Produk baru',cat=p.category||'Workspace',brand=p.brand||'';const desc=p.sourceDescription||p.summary||`Informasi ${name} untuk membantu membandingkan fitur, spesifikasi, harga, dan kecocokannya.`;return {summary:desc,pros:[`Data produk dirangkum dari informasi yang tersedia`,`Dapat dibandingkan dengan produk sejenis`,`Relevan untuk kategori ${cat}`],cons:['Harga dan ketersediaan dapat berubah di toko','Periksa spesifikasi dan varian pada halaman sumber sebelum membeli'],specs:Object.assign({Kategori:cat},p.specs||{}),faq:[{q:`Apa yang perlu diperhatikan sebelum membeli ${name}?`,a:'Periksa varian, kompatibilitas, spesifikasi, harga, garansi, ongkir, dan kebijakan retur pada halaman toko.'},{q:`Apakah ${name} cocok untuk kerja?`,a:`Kecocokan bergantung pada kebutuhan dan spesifikasi yang tersedia. Gunakan data produk sebagai dasar perbandingan.`}],seoTitle:`${name} — Review, Spesifikasi & Cek Harga | Faeyza Store`,metaDescription:`Lihat informasi ${name}${brand?` dari ${brand}`:''}, spesifikasi, kelebihan, pertimbangan, dan cek harga di Faeyza Store.`,caption:`${name} — cek review, spesifikasi, dan harga terbaru di Faeyza Store.`}}
 function dataUrlParts(dataUrl){const m=String(dataUrl||'').match(/^data:(image\/[a-z0-9.+-]+);base64,([A-Za-z0-9+/=]+)$/i);return m?{mime:m[1],base64:m[2]}:null}
-async function generatePoseImage(imageData,prompt){
+async function generatePoseImages(imageData,prompt,count){
   const src=dataUrlParts(imageData);if(!src)throw new Error('Foto referensi harus berupa data URL gambar.');
   const form=new FormData();
   form.append('model',process.env.OPENAI_IMAGE_MODEL||'gpt-image-2');
@@ -17,29 +17,25 @@ async function generatePoseImage(imageData,prompt){
   form.append('quality',process.env.OPENAI_IMAGE_QUALITY||'low');
   form.append('output_format','webp');
   form.append('output_compression','60');
+  form.append('n',String(count));
   const r=await fetch('https://api.openai.com/v1/images/edits',{method:'POST',headers:{Authorization:`Bearer ${process.env.OPENAI_API_KEY}`},body:form});
   const d=await r.json();if(!r.ok)throw new Error(d?.error?.message||`OpenAI Image HTTP ${r.status}`);
-  const b64=d?.data?.[0]?.b64_json;if(!b64)throw new Error('OpenAI tidak mengembalikan gambar.');
-  return `data:image/webp;base64,${b64}`;
+  const images=(Array.isArray(d?.data)?d.data:[]).map(x=>x?.b64_json).filter(Boolean).map(b64=>`data:image/webp;base64,${b64}`);
+  if(!images.length)throw new Error('OpenAI tidak mengembalikan gambar.');
+  return images;
 }
 async function generateProductImages(p,count){
   const imageData=p.imageData||p.image||'';if(!dataUrlParts(imageData))return {images:[],notice:'Foto referensi tidak tersedia dalam format yang dapat dikirim ke generator gambar.'};
-  const name=p.name||'produk';
-  const common=`Buat foto produk fashion/e-commerce yang fotorealistik menggunakan foto referensi sebagai identitas visual utama. Pertahankan orang yang sama: wajah dan ciri wajah, warna dan model rambut, warna kulit, bentuk tubuh yang terlihat, pakaian yang sama persis, warna pakaian, motif, bahan yang tampak, aksesori, dan produk yang sedang dipakai/diperagakan. Jangan mengganti pakaian, wajah, jenis produk, warna, logo, atau detail produk. Hanya ubah pose, sudut kamera, dan komposisi secara wajar. Jangan menambahkan orang lain. Jangan membuat wajah baru atau orang baru. Hasil harus terlihat seperti pemotretan ulang oleh fotografer yang sama, bukan karakter berbeda. Produk: ${name}.`;
-  const poses=[
-    `${common} Pose 1: berdiri natural menghadap kamera dengan sudut tubuh sedikit 3/4, kedua tangan santai, full body, pencahayaan lembut, latar sederhana.`,
-    `${common} Pose 2: berdiri dengan satu kaki sedikit maju dan tubuh 3/4 ke samping, satu tangan menyentuh pakaian/produk secara natural, full body, pencahayaan lembut, latar sederhana.`,
-    `${common} Pose 3: pose santai berbeda dari dua pose sebelumnya, sedikit duduk/bersandar secara natural sambil tetap menampilkan pakaian/produk dengan jelas, full body, pencahayaan lembut, latar sederhana.`
-  ];
   const wanted=Math.max(3,Math.min(5,Number(count)||3));
-  const prompts=poses.concat([
-    `${common} Pose 4: berjalan pelan secara natural, sudut kamera sedikit menyamping, pakaian dan produk tetap terlihat jelas, full body, latar sederhana.`,
-    `${common} Pose 5: berdiri santai dengan satu tangan di pinggang dan sudut kamera berbeda, full body, latar sederhana.`
-  ]).slice(0,wanted);
-  const results=await Promise.allSettled(prompts.map(x=>generatePoseImage(imageData,x)));
-  const images=results.filter(x=>x.status==='fulfilled').map(x=>x.value);
-  const failed=results.filter(x=>x.status==='rejected');
-  return {images,notice:failed.length?`${images.length} foto AI berhasil dibuat; ${failed.length} foto gagal dibuat.`:''};
+  const name=p.name||'produk';
+  const prompt=`Buat ${wanted} foto produk fashion/e-commerce yang fotorealistik menggunakan foto referensi sebagai identitas visual utama. Pertahankan orang yang sama pada semua hasil: wajah dan ciri wajah, warna dan model rambut, warna kulit, bentuk tubuh yang terlihat, pakaian yang sama persis, warna pakaian, motif, bahan yang tampak, aksesori, dan produk yang sedang dipakai/diperagakan. Jangan mengganti pakaian, wajah, jenis produk, warna, logo, atau detail produk. Jangan menambahkan orang lain. Setiap hasil HARUS memakai pose dan sudut kamera yang berbeda, tetapi tetap merupakan orang dan produk yang sama. Buat variasi: berdiri menghadap kamera, pose 3/4, pose santai sedikit bersandar/duduk, berjalan natural, dan satu pose tangan di pinggang; gunakan sebanyak ${wanted} variasi pertama. Full body bila memungkinkan, pencahayaan lembut, latar sederhana, gaya foto katalog marketplace. Produk: ${name}.`;
+  try{
+    const images=await generatePoseImages(imageData,prompt,wanted);
+    const failed=wanted-images.length;
+    return {images,notice:failed>0?`${images.length} foto AI berhasil dibuat; ${failed} foto gagal dibuat.`:`${images.length} foto AI berhasil dibuat.`};
+  }catch(e){
+    return {images:[],notice:`0 foto AI berhasil dibuat; ${wanted} foto gagal dibuat. ${e.message}`};
+  }
 }
 module.exports=async function(req,res){
   if(!auth(req))return res.status(401).json({ok:false,error:'Unauthorized'});
