@@ -28,7 +28,7 @@ if(fs.existsSync(htmlDir)){
 try { execFileSync(process.execPath,[path.join(__dirname,'generate.js')],{cwd:root,stdio:'ignore'}); } catch(e) { bad.push('production build script failed'); }
 if(bad.length){ console.error('PRODUCTION CHECK FAIL'); bad.forEach(x=>console.error(' - '+x)); process.exit(1); }
 const apiFiles = fs.readdirSync(path.join(root, 'api')).filter(f => f.endsWith('.js'));
-if (apiFiles.length > 11) throw new Error(`Hobby deploy guard: ${apiFiles.length} Serverless Functions terdeteksi; V51 menargetkan <=11.`);
+if (apiFiles.length > 11) throw new Error(`Hobby deploy guard: ${apiFiles.length} Serverless Functions terdeteksi; V52 menargetkan <=11.`);
 console.log(`Hobby deploy guard: ${apiFiles.length} API functions.`);
 
 console.log('PRODUCTION CHECK PASS: release files and generated HTML are production-clean');
