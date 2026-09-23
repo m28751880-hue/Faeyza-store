@@ -1,4 +1,4 @@
-const CACHE='faeyza-store-v38-static';
+const CACHE='faeyza-store-v50-static';
 const CORE=['/','/offline.html','/style.css','/app.js','/pwa.js','/manifest.webmanifest'];
 const STATIC_RE=/\.(?:css|js|png|jpg|jpeg|webp|svg|ico|woff2?)$/i;
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting())));
