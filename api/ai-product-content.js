@@ -68,6 +68,29 @@ module.exports=async function(req,res){
   if(!auth(req))return res.status(401).json({ok:false,error:'Unauthorized'});
   if(req.method!=='POST')return res.status(405).json({ok:false,error:'Method not allowed'});
   const b=parseBody(req);const p=b.product||{};
+  if(b.mode==='screenshot-verify'){
+    if(!p.imageData)return res.status(400).json({ok:false,error:'Screenshot produk belum diberikan.'});
+    if(!process.env.OPENAI_API_KEY)return res.status(503).json({ok:false,error:'OPENAI_API_KEY belum dipasang. Verifikasi screenshot membutuhkan AI vision.'});
+    const verifyModel=process.env.OPENAI_MODEL||'gpt-5.6-luna';
+    const verifyPrompt=`Kamu adalah pemeriksa data katalog e-commerce. Baca screenshot halaman produk yang diberikan. HANYA ambil fakta yang benar-benar terlihat pada screenshot. Jangan menebak, jangan melengkapi dari pengetahuan umum, jangan mencari produk serupa, dan jangan menggunakan nama file gambar sebagai nama produk. Jika suatu data tidak terlihat jelas, kembalikan string kosong.
+
+Ekstrak jika terlihat: nama produk, brand, kategori yang dapat dibaca dari breadcrumb/label, harga sekarang, harga lama/coret, rating, jumlah ulasan, jumlah terjual, nama toko, stok, dan ringkasan spesifikasi yang tertulis. Jika screenshot memperlihatkan URL produk, ekstrak juga productUrl.
+
+Kembalikan HANYA JSON valid: {"name":"","brand":"","category":"","price":"","oldPrice":"","rating":"","reviews":"","unitsSold":"","shopName":"","stock":"","productUrl":"","specs":{},"evidence":[]}.
+
+Setiap item evidence harus berupa deskripsi singkat tentang teks/area yang terlihat, bukan fakta baru.`;
+    try{
+      const src=dataUrlParts(p.imageData); if(!src)throw new Error('Screenshot harus berupa data URL gambar.');
+      const r=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:`Bearer ${process.env.OPENAI_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({model:verifyModel,input:[{role:'user',content:[{type:'input_text',text:verifyPrompt},{type:'input_image',image_url:p.imageData}]}]})});
+      const d=await r.json(); if(!r.ok)throw new Error(d?.error?.message||`OpenAI HTTP ${r.status}`);
+      const raw=cleanJsonText(extractText(d)); let out; try{out=JSON.parse(raw)}catch{throw new Error('AI mengembalikan format verifikasi yang tidak valid.');}
+      const name=String(out.name||'').trim();
+      const corroborating=Boolean(String(out.price||'').trim()||String(out.shopName||'').trim()||String(out.rating||'').trim()||String(out.reviews||'').trim()||String(out.unitsSold||'').trim()||String(out.productUrl||'').trim()||(out.specs&&Object.keys(out.specs).length));
+      const hasIdentity=Boolean(name && corroborating);
+      if(!hasIdentity) out.verificationNote='Screenshot belum memuat cukup bukti untuk verifikasi identitas produk. Tampilkan nama produk dan minimal satu detail pendukung (mis. harga/toko/rating/spesifikasi).';
+      return res.status(200).json({ok:true,provider:'openai-vision',model:verifyModel,sourceVerified:hasIdentity,verificationLevel:hasIdentity?'screenshot-verified':'unverified',dataSource:'Screenshot halaman produk',checkedAt:new Date().toISOString(),content:out});
+    }catch(e){return res.status(502).json({ok:false,error:`Verifikasi screenshot gagal: ${e.message}`});}
+  }
   if(!p.name&&!p.sourceDescription&&!p.affiliateUrl)return res.status(400).json({ok:false,error:'Data produk belum cukup.'});
   if(!process.env.OPENAI_API_KEY){return res.status(200).json({ok:true,provider:'template',fallback:true,content:fallback(p),images:[],notice:'OPENAI_API_KEY belum dipasang. Konten dibuat dengan template aman; tambahkan OPENAI_API_KEY di Vercel untuk generasi AI.'})}
   const model=process.env.OPENAI_MODEL||'gpt-5.6-luna';

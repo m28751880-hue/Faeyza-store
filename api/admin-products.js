@@ -49,6 +49,8 @@ module.exports = async function handler(req,res){
     const seen=new Set();
     for(const p of products){
       if(!p.name || !p.slug) return res.status(400).json({ok:false,error:'Setiap produk wajib memiliki name/slug.'});
+      if(p.verificationRequired === true && p.sourceVerified !== true) return res.status(400).json({ok:false,error:`Produk belum terverifikasi: ${p.name||'(tanpa nama)'}. Verifikasi dari screenshot atau sumber resmi sebelum publish.`});
+      if(String(p.category||'').trim().toLowerCase()==='workspace' || String(p.name||'').trim().toLowerCase()==='produk belum teridentifikasi' || /^(IMG|DSC|DCIM|WA|Screenshot|Screen Shot|Photo|Foto|Image)[ _-]?\d{3,}/i.test(String(p.name||'').trim())) return res.status(400).json({ok:false,error:`Identitas produk masih berupa fallback: ${p.name||'(tanpa nama)'}.`});
       if(seen.has(p.slug)) return res.status(400).json({ok:false,error:`Slug duplikat: ${p.slug}`});
       seen.add(p.slug);
       if(p.rating!=='' && (p.rating<0 || p.rating>5)) return res.status(400).json({ok:false,error:`Rating tidak valid: ${p.name}`});
