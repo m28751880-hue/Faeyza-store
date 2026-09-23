@@ -1,6 +1,6 @@
 let products=[],token='';
 const $=s=>document.querySelector(s);
-const SCREENSHOT_STATE_KEY='faeyza:screenshot-verification:v64';
+const SCREENSHOT_STATE_KEY='faeyza:screenshot-verification:v66';
 const loginGate=$('#loginGate'),adminApp=$('#adminApp'),loginStatus=$('#loginStatus');
 function persistVerifiedScreenshot(state){try{if(!state){sessionStorage.removeItem(SCREENSHOT_STATE_KEY);return;}const copy={...state,imageData:state.imageData||''};sessionStorage.setItem(SCREENSHOT_STATE_KEY,JSON.stringify(copy));}catch(_){} }
 function clearVerifiedScreenshot(){window.__verifiedScreenshot=null;persistVerifiedScreenshot(null)}
@@ -14,7 +14,61 @@ function setStatus(s,ok=true){$('#status').textContent=s;$('#status').className=
 function isLegacyPhotoName(v){return /^(IMG|DSC|DCIM|WA|Screenshot|Screen Shot|Photo|Foto|Image)[ _-]?\d{3,}/i.test(String(v||'').trim())}
 function sanitizeLegacyProducts(){let changed=false;products=products.map(p=>{const name=String(p.name||'').trim(),cat=String(p.category||'').trim().toLowerCase(),brand=String(p.brand||'').trim();if(isLegacyPhotoName(name)&&(!cat||cat==='workspace'||cat==='belum ditentukan'||isLegacyPhotoName(brand))){changed=true;return {...p,name:'Produk belum teridentifikasi',slug:'',category:'Belum ditentukan',brand:'',sourceVerified:false,verificationLevel:'unverified',verificationRequired:true} }return p});return changed}
 function filtered(){const q=$('#search').value.trim().toLowerCase(),a=$('#active').value;return products.map((p,i)=>({p,i})).filter(x=>(!q||[x.p.name,x.p.slug,x.p.category,x.p.brand].join(' ').toLowerCase().includes(q))&&(a==='all'||(a==='active'?x.p.active!==false:x.p.active===false)))}
-function render(){const list=filtered();$('#stats').innerHTML=`<div class="card"><b>${products.length}</b> total · <b>${products.filter(p=>p.active!==false).length}</b> aktif · <b>${products.filter(p=>p.active===false).length}</b> nonaktif · <b>${new Set(products.map(x=>x.category).filter(Boolean)).size}</b> kategori</div>`;$('#editor').innerHTML=list.map(({p,i})=>`<article class="card"><div class="row"><h3>${esc(p.name||'Produk baru')}</h3><label class="switch"><input type="checkbox" data-i="${i}" data-k="active" ${p.active!==false?'checked':''}> Aktif</label></div><div class="grid"><label>Nama<input data-i="${i}" data-k="name" value="${esc(p.name)}"></label><label>Slug<input data-i="${i}" data-k="slug" value="${esc(p.slug)}"></label><label>Kategori<input data-i="${i}" data-k="category" value="${esc(p.category)}"></label><label>Brand<input data-i="${i}" data-k="brand" value="${esc(p.brand)}"></label><label>Harga<input type="number" data-i="${i}" data-k="price" value="${esc(p.price)}"></label><label>Harga Lama<input type="number" data-i="${i}" data-k="oldPrice" value="${esc(p.oldPrice)}"></label><label>Rating<input type="number" step="0.1" min="0" max="5" data-i="${i}" data-k="rating" value="${esc(p.rating)}"></label><label>Reviews<input type="number" min="0" data-i="${i}" data-k="reviews" value="${esc(p.reviews)}"></label><label>Affiliate URL<input data-i="${i}" data-k="affiliateUrl" value="${esc(p.affiliateUrl)}"></label><label>Gambar URL<input data-i="${i}" data-k="image" value="${esc(p.image?.startsWith('data:')?'[Foto tersimpan]':p.image)}"></label><label class="full">Foto Tambahan<input data-i="${i}" data-k="images" value="${esc((p.images||[]).length+' foto tambahan tersimpan')}" readonly></label><label>Video Referensi URL<input data-i="${i}" data-k="videoUrl" value="${esc(p.videoUrl)}"></label><label class="full">Ringkasan<textarea data-i="${i}" data-k="summary">${esc(p.summary)}</textarea></label><label>SEO Title<input data-i="${i}" data-k="seoTitle" value="${esc(p.seoTitle||'')}"></label><label>Meta Description<textarea data-i="${i}" data-k="metaDescription">${esc(p.metaDescription||'')}</textarea></label><label class="full">Kelebihan<textarea data-i="${i}" data-k="pros">${esc((p.pros||[]).join('\n'))}</textarea></label><label class="full">Pertimbangan<textarea data-i="${i}" data-k="cons">${esc((p.cons||[]).join('\n'))}</textarea></label><label class="full">FAQ JSON<textarea data-i="${i}" data-k="faq">${esc(JSON.stringify(p.faq||[],null,2))}</textarea></label><label class="full">Caption<textarea data-i="${i}" data-k="caption">${esc(p.caption||'')}</textarea></label></div>${p.image?`<img class="admin-thumb" src="${esc(p.image)}" alt="Foto utama ${esc(p.name||'produk')}">`:''}${Array.isArray(p.images)&&p.images.length?`<div class="admin-ai-gallery"><b>Galeri Foto Tambahan (${p.images.length})</b><div class="admin-ai-grid">${p.images.map((src,j)=>`<img class="admin-thumb" src="${esc(src)}" alt="Foto tambahan ${j+1}">`).join('')}</div></div>`:''}<div class="share-actions"><button class="share-btn" data-share-index="${i}">📤 Bagikan Produk</button>${p.affiliateUrl?`<button class="share-btn" data-refresh-index="${i}">🔄 Cek Ulang Link</button><button class="share-btn" data-open-link-index="${i}">🔗 Buka & Verifikasi</button>`:""}</div><p class="note">Video dapat berupa YouTube, TikTok, Shopee, atau direct MP4. Jika sumber tidak mengizinkan embed, tombol akan membuka video di sumbernya.</p></article>`).join('')||'<div class="card">Tidak ada produk yang cocok.</div>';document.querySelectorAll('[data-i]').forEach(el=>el.oninput=()=>{const i=+el.dataset.i,k=el.dataset.k;if(k==='active')products[i][k]=el.checked;else if(['price','oldPrice','rating','reviews'].includes(k))products[i][k]=el.value===''?'':Number(el.value);else if(k==='pros'||k==='cons')products[i][k]=el.value.split(/\n|\|/).map(x=>x.trim()).filter(Boolean);else if(k==='faq'){try{products[i][k]=JSON.parse(el.value||'[]')}catch(_){products[i][k]=products[i][k]||[]}}else if(k==='image'&&el.value==='[Foto tersimpan]'){}else if(k==='images'){}else products[i][k]=el.value})}
+function render(){
+ const list=filtered();
+ $('#stats').innerHTML=`<div class="card"><b>${products.length}</b> total · <b>${products.filter(p=>p.active!==false).length}</b> aktif · <b>${products.filter(p=>p.active===false).length}</b> nonaktif · <b>${new Set(products.map(x=>x.category).filter(Boolean)).size}</b> kategori</div>`;
+ $('#editor').innerHTML=list.map(({p,i})=>{
+   const factFields=[
+    ['Nama','name'],['Slug','slug'],['Kategori','category'],['Brand','brand'],
+    ['Harga','price','number'],['Harga Lama','oldPrice','number'],['Rating','rating','number'],['Ulasan','reviews','number'],
+    ['Terjual','unitsSold','number'],['Toko','shopName'],['Stok','stock'],['Komisi %','commissionRate','number'],['Komisi Rp','commissionAmount','number'],
+    ['Harga Min','priceMin','number'],['Harga Max','priceMax','number'],['Harga Lama Min','oldPriceMin','number'],['Harga Lama Max','oldPriceMax','number'],
+    ['Marketplace','marketplace'],['Product ID','productId'],['Detail Link','detailLink']
+   ];
+   const facts=factFields.map(([label,k,type='text'])=>`<label>${label}<input data-i="${i}" data-k="${k}" type="${type}" ${type==='number'?'step="any"':''} value="${esc(p[k]??'')}"></label>`).join('');
+   const contentComplete=Boolean(String(p.summary||'').trim()&&String(p.seoTitle||'').trim()&&String(p.metaDescription||'').trim()&&String(p.caption||'').trim()&&Array.isArray(p.pros)&&p.pros.length&&Array.isArray(p.cons)&&p.cons.length&&Array.isArray(p.faq)&&p.faq.length&&p.specs&&Object.keys(p.specs).length);
+   return `<article class="card">
+    <div class="row"><h3>${esc(p.name||'Produk baru')}</h3><label class="switch"><input type="checkbox" data-i="${i}" data-k="active" ${p.active!==false?'checked':''}> Aktif</label></div>
+    <div class="marketplace-badge ${p.sourceVerified?'verified':'unverified'}">${p.sourceVerified?'✓ Data sumber terverifikasi':'⚠ Data sumber belum terverifikasi'} · ${esc(p.dataSource||'Sumber belum ditentukan')}</div>
+    <div class="grid">${facts}
+      <label>Affiliate URL<input data-i="${i}" data-k="affiliateUrl" value="${esc(p.affiliateUrl)}"></label>
+      <label>Gambar URL<input data-i="${i}" data-k="image" value="${esc(p.image?.startsWith('data:')?'[Foto tersimpan]':p.image)}"></label>
+      <label class="full">Foto Tambahan<input data-i="${i}" data-k="images" value="${esc((p.images||[]).length+' foto tambahan tersimpan')}" readonly></label>
+      <label>Video Referensi URL<input data-i="${i}" data-k="videoUrl" value="${esc(p.videoUrl)}"></label>
+      
+      <label>Tag<input data-i="${i}" data-k="tag" value="${esc(p.tag||'')}"></label>
+      <label class="full">Ringkasan<textarea data-i="${i}" data-k="summary">${esc(p.summary)}</textarea></label>
+      <label>SEO Title<input data-i="${i}" data-k="seoTitle" value="${esc(p.seoTitle||'')}"></label>
+      <label>Meta Description<textarea data-i="${i}" data-k="metaDescription">${esc(p.metaDescription||'')}</textarea></label>
+      <label class="full">Spesifikasi JSON<textarea data-i="${i}" data-k="specs">${esc(JSON.stringify(p.specs||{},null,2))}</textarea></label>
+      <label class="full">Kelebihan<textarea data-i="${i}" data-k="pros">${esc((p.pros||[]).join('\n'))}</textarea></label>
+      <label class="full">Pertimbangan<textarea data-i="${i}" data-k="cons">${esc((p.cons||[]).join('\n'))}</textarea></label>
+      <label class="full">FAQ JSON<textarea data-i="${i}" data-k="faq">${esc(JSON.stringify(p.faq||[],null,2))}</textarea></label>
+      <label class="full">Caption<textarea data-i="${i}" data-k="caption">${esc(p.caption||'')}</textarea></label>
+      <label class="full">Sumber Data<textarea data-i="${i}" data-k="dataSource">${esc(p.dataSource||'')}</textarea></label>
+      <label>Metode Sumber<input data-i="${i}" data-k="sourceMethod" value="${esc(p.sourceMethod||'')}"></label>
+      <label>Diperiksa<input data-i="${i}" data-k="sourceCheckedAt" value="${esc(p.sourceCheckedAt||'')}"></label>
+      <label>Final URL<input data-i="${i}" data-k="finalUrl" value="${esc(p.finalUrl||'')}"></label>
+      <label class="full">Catatan Sinyal Sumber<textarea data-i="${i}" data-k="sourceSignalsText" readonly>${esc(p.sourceSignals?.note||'')}</textarea></label>
+    </div>
+    <div class="marketplace-status"><b>${contentComplete?'✓ Semua kolom konten utama terisi':'⚠ Konten belum lengkap'}</b><br><small>Data yang tidak terlihat pada sumber ditulis sebagai “Tidak tercantum pada sumber yang diverifikasi”, bukan ditebak.</small></div>
+    ${p.image?`<img class="admin-thumb" src="${esc(p.image)}" alt="Foto utama ${esc(p.name||'produk')}">`:''}
+    ${Array.isArray(p.images)&&p.images.length?`<div class="admin-ai-gallery"><b>Galeri Foto Tambahan (${p.images.length})</b><div class="admin-ai-grid">${p.images.map((src,j)=>`<img class="admin-thumb" src="${esc(src)}" alt="Foto tambahan ${j+1}">`).join('')}</div></div>`:''}
+    <div class="share-actions"><button class="share-btn" data-share-index="${i}">📤 Bagikan Produk</button>${p.affiliateUrl?`<button class="share-btn" data-refresh-index="${i}">🔄 Cek Ulang Link</button><button class="share-btn" data-open-link-index="${i}">🔗 Buka & Verifikasi</button>`:''}</div>
+    <p class="note">Video dapat berupa YouTube, TikTok, Shopee, atau direct MP4. Jika sumber tidak mengizinkan embed, tombol akan membuka video di sumbernya.</p>
+   </article>`;
+ }).join('')||'<div class="card">Tidak ada produk yang cocok.</div>';
+ document.querySelectorAll('[data-i]').forEach(el=>el.oninput=()=>{
+   const i=+el.dataset.i,k=el.dataset.k;
+   if(k==='active')products[i][k]=el.checked;
+   else if(['price','oldPrice','rating','reviews','unitsSold','commissionRate','commissionAmount','priceMin','priceMax','oldPriceMin','oldPriceMax'].includes(k))products[i][k]=el.value===''?'':Number(el.value);
+   else if(k==='pros'||k==='cons')products[i][k]=el.value.split(/\n|\|/).map(x=>x.trim()).filter(Boolean);
+   else if(k==='faq'||k==='specs'){try{products[i][k]=JSON.parse(el.value||(k==='specs'?'{}':'[]'))}catch(_){products[i][k]=products[i][k]||('specs'===k?{}:[])}}
+   else if(k==='image'&&el.value==='[Foto tersimpan]'){}
+   else if(k==='images'||k==='sourceSignalsText'){}
+   else products[i][k]=el.value;
+ });
+}
 function productUrl(p){return `${location.origin}/produk/${encodeURIComponent(p.slug||'')}/`}
 function shareCaption(p,url){const name=p.name||'Produk pilihan';const price=p.price?`Harga tercatat: ${Number(p.price).toLocaleString('id-ID')}\n`:'';const summary=(p.summary||'').replace(/\s+/g,' ').trim();const short=summary.length>150?summary.slice(0,147)+'...':summary;const cat=p.category?`Kategori: ${p.category}\n`:'';const tags=['#Faeyza Store'];if(p.category)tags.push('#'+String(p.category).toLowerCase().replace(/[^a-z0-9]+/g,''));tags.push('#rekomendasi','#setupkerja');return `🔎 ${name}\n\n${short||'Lihat review, spesifikasi, kelebihan, dan pertimbangannya di Faeyza Store.'}\n\n${price}${cat}👉 Cek review & harga:\n${url}\n\n${tags.join(' ')}`}
 function openShare(i){const p=products[i];if(!p)return;const url=productUrl(p),caption=shareCaption(p,url);$('#shareModal').hidden=false;$('#shareProductName').textContent=p.name||'Produk';$('#shareUrl').value=url;$('#shareCaption').value=caption;$('#qrBox').hidden=true;$('#downloadQr').hidden=true;$('#shareStatus').textContent='';window.__shareProduct={p,url,caption}}
@@ -48,7 +102,6 @@ $('#quickScreenshot').onchange=async e=>{const f=e.target.files[0];if(!f)return;
 function parseOcrProductText(text){
  const raw=String(text||'').replace(/\r/g,'');
  const lines=raw.split(/\n+/).map(x=>x.replace(/\s+/g,' ').trim()).filter(Boolean);
- const joined=lines.join(' ');
  const moneyToNumber=(v)=>{if(!v)return '';let x=String(v).replace(/Rp\.?\s*/ig,'').replace(/\s/g,'').replace(/[^0-9.,]/g,'');if(!x)return '';if(x.includes('.')&&x.includes(','))x=x.replace(/\./g,'').replace(',','.');else if(x.includes('.')&&/\.\d{3}$/.test(x))x=x.replace(/\./g,'');else if(x.includes(',')&&/,\d{3}$/.test(x))x=x.replace(/,/g,'');else x=x.replace(/,/g,'.');const n=Number(x);return Number.isFinite(n)?Math.round(n):''};
  const priceMatches=[...raw.matchAll(/Rp\.?\s*([0-9][0-9.\s]*(?:,[0-9]+)?)/ig)].map(m=>moneyToNumber(m[1])).filter(Boolean);
  const uniquePrices=[...new Set(priceMatches)];
@@ -58,25 +111,29 @@ function parseOcrProductText(text){
  const shopM=raw.match(/(?:toko|shop)\s*[:\-]?\s*([^\n|]{2,80})/i);
  const productIdM=raw.match(/(?:produk|product)\s*(?:id|kode)\s*[:#\-]?\s*([A-Za-z0-9_-]{4,})/i);
  const price=uniquePrices.length?uniquePrices[0]:'';
- // Jangan menganggap harga yang sama, yang muncul berulang karena UI Shopee, sebagai harga lama.
- // Harga lama hanya diisi bila OCR menemukan angka harga lain yang benar-benar berbeda.
  const oldCandidates=uniquePrices.filter(n=>n!==price);
  const oldPrice=oldCandidates.length?Math.max(...oldCandidates):'';
- let name='';
- const bad=/^(rp|harga|terjual|rating|ulasan|review|toko|shop|bagikan|beli|checkout|gratis|voucher|diskon|home|beranda|detail|spesifikasi|deskripsi|produk|shopee|follow|chat|online|varian|warna|ukuran|pilih|opsi|jumlah|komentar|penilaian)\b/i;
+ const bad=/^(rp|harga|terjual|rating|ulasan|review|toko|shop|bagikan|beli|checkout|gratis|voucher|diskon|home|beranda|detail|spesifikasi|deskripsi|produk|shopee|follow|chat|online|varian|warna|ukuran|pilih|opsi|jumlah|komentar|penilaian|informasi|keterangan|penjualan|pengiriman)\b/i;
  const titleCandidates=[];
- for(const line of lines){
-   const clean=line.replace(/^[•·|>]+\s*/,'').trim();
+ for(let idx=0;idx<lines.length;idx++){
+   let clean=lines[idx].replace(/^[•·|>]+\s*/,'').trim();
+   clean=clean.replace(/^(?:nama\s*produk|nama|judul\s*produk)\s*[:：-]\s*/i,'').trim();
+   // OCR Shopee sering menempelkan label variasi pada baris judul. Buang labelnya,
+   // tetapi jangan membuang kata warna/model yang memang bisa menjadi bagian nama produk.
+   clean=clean.replace(/^(?:variasi|variant)\s*[:：-]\s*/i,'').trim();
    if(clean.length<8||clean.length>180||bad.test(clean)) continue;
    if(/https?:\/\//i.test(clean)||/Rp\.?\s*\d/i.test(clean)||/\d+%/.test(clean)) continue;
    if(/^(?:[0-9\s.,]+|[A-Z0-9_-]{1,12})$/.test(clean)) continue;
-   if(/^(?:variasi|variant|warna|ukuran|size|pilih)\s*[:：]/i.test(clean)) continue;
-   const variationNoise=/\b(ld|lingkar dada|panjang|size|ukuran|warna|polka|cream|hitam|putih|merah|navy|coklat)\b/i.test(clean);
-   const score=(clean.split(/\s+/).length>=3?3:0)+(clean.length>=18?2:0)+(variationNoise?-3:0)+(lines.indexOf(line)<Math.max(1,lines.length/2)?2:0);
-   titleCandidates.push({text:clean,score});
+   if(/^(?:warna|ukuran|size|pilih|opsi)\s*[:：]/i.test(clean)) continue;
+   const isVariationLine=/^(?:ld|lingkar dada|panjang|lebar|tinggi|size|ukuran|warna)\b\s*[:：-]/i.test(clean);
+   const looksLikeTitle=/\b(?:baju|gamis|dress|kemeja|blouse|tunik|kaos|hijab|jilbab|mukena|celana|rok|sepatu|sandal|tas|jaket|outer|cardigan|set|pakaian|busana|polka|motif)\b/i.test(clean);
+   const score=(clean.split(/\s+/).length>=3?3:0)+(clean.length>=18?2:0)+(looksLikeTitle?4:0)+(isVariationLine?-8:0)+(idx<Math.max(2,Math.ceil(lines.length*.45))?2:0);
+   titleCandidates.push({text:clean,score,idx});
  }
- titleCandidates.sort((a,b)=>b.score-a.score||b.text.length-a.text.length);
- name=titleCandidates[0]?.text||'';
+ titleCandidates.sort((a,b)=>b.score-a.score||a.idx-b.idx||b.text.length-a.text.length);
+ let name=titleCandidates[0]?.text||'';
+ // Hindari kandidat yang sebenarnya hanya detail variasi/ukuran.
+ if(/^(?:ld|lingkar dada|panjang|lebar|tinggi|size|ukuran|warna)\b/i.test(name)) name='';
  let brand='';
  const brandM=raw.match(/(?:brand|merek)\s*[:\-]\s*([^\n|]{2,60})/i); if(brandM)brand=brandM[1].trim();
  let category='';
@@ -99,10 +156,31 @@ async function runLocalScreenshotOCR(img){
  return out;
 }
 function renderOcrReview(c){
- const rows=[['Nama',c.name],['Brand',c.brand],['Kategori',c.category],['Harga',c.price?('Rp '+Number(c.price).toLocaleString('id-ID')):''],['Harga lama',c.oldPrice?('Rp '+Number(c.oldPrice).toLocaleString('id-ID')):''],['Rating',c.rating],['Ulasan',c.reviews],['Terjual',c.unitsSold],['Toko',c.shopName]];
+ const field=(k,label,type='text',step='')=>`<label class="ocr-edit-field">${label}<input data-ocr-edit="${k}" type="${type}" ${step?`step="${step}"`:''} value="${esc(c[k]??'')}"></label>`;
  const verified=Boolean(c.sourceVerified);
- $('#marketplaceStatus').innerHTML=`<div class="marketplace-badge ${verified?'verified':'unverified'}">${verified?(c.confirmedByUser?'✓ Data screenshot dikonfirmasi pengguna':'⚠ Hasil OCR lokal — belum dikonfirmasi'):'⚠ OCR belum menemukan bukti yang cukup'}</div><div class="marketplace-grid">${rows.map(([k,v])=>`<span>${k}: <b>${esc(v||'-')}</b></span>`).join('')}</div><p class="note">Sumber utama: screenshot produk yang kamu pilih. OCR hanya membaca teks yang terlihat; data dari halaman Shopee yang gagal dibaca otomatis tidak akan menggantikan data screenshot.</p>${verified&&!c.confirmedByUser?'<button id="confirmOcr" class="primary">✅ Konfirmasi Data OCR</button>':''}`;
- const btn=$('#confirmOcr'); if(btn)btn.onclick=()=>{window.__verifiedScreenshot={...c,sourceVerified:true,verificationLevel:'screenshot-ocr-verified',verificationNote:'Dikonfirmasi pengguna setelah pemeriksaan hasil OCR.',confirmedByUser:true};persistVerifiedScreenshot(window.__verifiedScreenshot);setStatus('Data screenshot dikonfirmasi. Sekarang klik Buat Konten Otomatis. Data ini tidak akan diganti oleh kegagalan pembacaan halaman Shopee.',true);renderOcrReview(window.__verifiedScreenshot);};
+ const editable=`<div class="ocr-edit-grid">
+   ${field('name','Nama Produk')}${field('brand','Brand')}${field('category','Kategori')}
+   ${field('price','Harga','number')}${field('oldPrice','Harga Lama','number')}${field('rating','Rating','number','0.1')}
+   ${field('reviews','Ulasan','number')}${field('unitsSold','Terjual','number')}${field('shopName','Toko')}${field('stock','Stok')}
+ </div><label class="ocr-spec-field">Spesifikasi yang terlihat<textarea data-ocr-edit="specsText">${esc(JSON.stringify(c.specs||{},null,2))}</textarea></label>`;
+ const action=verified&&!c.confirmedByUser?'<button id="confirmOcr" class="primary">✅ Simpan & Konfirmasi Data</button>':'';
+ $('#marketplaceStatus').innerHTML=`<div class="marketplace-badge ${verified?'verified':'unverified'}">${verified?(c.confirmedByUser?'✓ Data screenshot dikonfirmasi pengguna':'⚠ Hasil OCR lokal — periksa & koreksi sebelum konfirmasi'):'⚠ OCR belum menemukan bukti yang cukup'}</div>${editable}<p class="note">Periksa terutama <b>Nama Produk</b>. OCR lokal dapat salah membaca judul karena screenshot Shopee kecil. Data yang kamu konfirmasi akan dikunci sebagai sumber fakta dan AI tidak boleh mengganti nama, kategori, brand, harga, rating, toko, atau jumlah terjual.</p>${action}`;
+ document.querySelectorAll('[data-ocr-edit]').forEach(el=>el.oninput=()=>{const k=el.dataset.ocrEdit;if(k==='specsText'){try{c.specs=JSON.parse(el.value||'{}')}catch(_){c.specs=c.specs||{}}}else c[k]=el.value;});
+ const btn=$('#confirmOcr'); if(btn)btn.onclick=()=>{
+   const cleanNumber=(k)=>{if(c[k]===''||c[k]===null||c[k]===undefined)return '';const n=Number(c[k]);return Number.isFinite(n)?n:''};
+   c.name=String(c.name||'').trim(); c.brand=String(c.brand||'').trim(); c.category=String(c.category||'').trim(); c.shopName=String(c.shopName||'').trim(); c.stock=String(c.stock||'').trim();
+   c.price=cleanNumber('price');c.oldPrice=cleanNumber('oldPrice');c.rating=cleanNumber('rating');c.reviews=cleanNumber('reviews');c.unitsSold=cleanNumber('unitsSold');
+   if(!c.name)return setStatus('Nama Produk wajib diisi sebelum konfirmasi.',false);
+   if(!c.category)c.category='Tidak tercantum pada sumber yang diverifikasi.';
+   if(!c.brand)c.brand='Tidak tercantum pada sumber yang diverifikasi.';
+   if(!c.shopName)c.shopName='Tidak tercantum pada sumber yang diverifikasi.';
+   if(!c.stock)c.stock='Tidak tercantum pada sumber yang diverifikasi.';
+   if(!c.specs||typeof c.specs!=='object')c.specs={};
+   window.__verifiedScreenshot={...c,sourceVerified:true,verificationLevel:'screenshot-ocr-verified',verificationNote:'Dikonfirmasi pengguna setelah pemeriksaan dan koreksi hasil OCR.',confirmedByUser:true};
+   persistVerifiedScreenshot(window.__verifiedScreenshot);
+   setStatus('Data screenshot dikonfirmasi. Data fakta yang sudah kamu koreksi akan dikunci saat membuat konten.',true);
+   renderOcrReview(window.__verifiedScreenshot);
+ };
 }
 
 $('#verifyScreenshot').onclick=async()=>{
@@ -148,7 +226,7 @@ $('#auto').onclick=async()=>{
  if(verifiedShot && verifiedShot.affiliateUrl && affiliateUrl && verifiedShot.affiliateUrl!==affiliateUrl && verifiedShot.productUrl!==affiliateUrl){
    clearVerifiedScreenshot(); verifiedShot=null;
  }
- if(verifiedShot&&!verifiedShot.sourceVerified)return setStatus('Hasil OCR belum dikonfirmasi. Klik Konfirmasi Data OCR sebelum membuat konten.',false);
+ if(verifiedShot&&!verifiedShot.sourceVerified)return setStatus('Hasil OCR belum dikonfirmasi. Periksa Nama Produk lalu klik Simpan & Konfirmasi Data.',false);
  if(!affiliateUrl)return setStatus('Masukkan link produk/affiliate.',false);
  if(!files.length&&!verifiedShot)return setStatus('Masukkan foto produk atau verifikasi screenshot halaman produk terlebih dahulu.',false);
  setStatus('Sedang mengambil data produk dan menyiapkan konten...');
@@ -180,19 +258,19 @@ $('#auto').onclick=async()=>{
   }
   const videoUrl=$('#quickVideo').value.trim()||d.videoUrl||'';
   const sourceSignals=d.sourceSignals||{};
-  let product={name:d.name||'Produk belum teridentifikasi',slug:d.slug||d.name,category:d.category||'Belum ditentukan',brand:d.brand||'',price:d.price||'',oldPrice:d.oldPrice||'',rating:d.rating||'',reviews:d.reviews||'',summary:d.summary||'',pros:d.pros||[],cons:d.cons||[],specs:d.specs||{},affiliateUrl:affiliateUrl,image:image||d.image||'',images:gallery,videoUrl,active:true,tag:'Pilihan Populer',shopName:d.shopName||'',commissionRate:d.commissionRate??'',commissionAmount:d.commissionAmount||'',unitsSold:d.unitsSold??'',stock:d.stock,priceMin:d.priceMin||'',priceMax:d.priceMax||'',oldPriceMin:d.oldPriceMin||'',oldPriceMax:d.oldPriceMax||'',marketplace:d.source||'',dataSource:d.dataSource||'',sourceVerified:Boolean(d.sourceVerified),verificationRequired:true,sourceMethod:d.sourceMethod||'',sourceCheckedAt:d.checkedAt||'',finalUrl:d.finalUrl||'',sourceSignals,redirectChain:d.redirectChain||[]};
+  let product={name:d.name||'Produk belum teridentifikasi',slug:d.slug||d.name,category:d.category||'Belum ditentukan',brand:d.brand||'',price:d.price||'',oldPrice:d.oldPrice||'',rating:d.rating||'',reviews:d.reviews||'',summary:d.summary||'',pros:d.pros||[],cons:d.cons||[],specs:d.specs||{},affiliateUrl:affiliateUrl,image:image||d.image||'',images:gallery,videoUrl,active:true,tag:'Pilihan Populer',shopName:d.shopName||'',commissionRate:d.commissionRate??'',commissionAmount:d.commissionAmount||'',unitsSold:d.unitsSold??'',stock:d.stock,priceMin:d.priceMin||'',priceMax:d.priceMax||'',oldPriceMin:d.oldPriceMin||'',oldPriceMax:d.oldPriceMax||'',marketplace:d.source||'',dataSource:d.dataSource||'',sourceVerified:Boolean(d.sourceVerified),verificationRequired:true,sourceFactLock:Boolean(verifiedShot?.confirmedByUser),sourceMethod:d.sourceMethod||'',sourceCheckedAt:d.checkedAt||'',finalUrl:d.finalUrl||'',sourceSignals,redirectChain:d.redirectChain||[]};
   $('#marketplaceStatus').innerHTML=`<div class="marketplace-badge ${(d.verificationLevel||'unverified')==='unverified'?'unverified':'verified'}">${(d.verificationLevel||'unverified')==='official-api'?'✓ Data terverifikasi via API resmi':(d.verificationLevel||'live-page')==='live-page'?'✓ Data dibaca dari halaman sumber saat ini':(d.verificationLevel||'')==='screenshot-verified'?'✓ Data diverifikasi dari screenshot':'⚠ Data belum terverifikasi'} · ${esc(d.dataSource||'Sumber halaman')} · diperiksa ${esc(d.checkedAt||'-')}</div><div class="source-detect"><b>🔎 Asal link:</b> ${esc(sourceSignals.source||d.source||'Tidak diketahui')} ${sourceSignals.initialHost&&sourceSignals.finalHost?`<span>(${esc(sourceSignals.initialHost)} → ${esc(sourceSignals.finalHost)})</span>`:''}<br><b>Jalur:</b> ${sourceSignals.redirects?.length?sourceSignals.redirects.map(x=>esc(x.from)+' → '+esc(x.to)).join(' → '):'langsung / tidak ada redirect HTTP'}<br><small>${esc(sourceSignals.note||'Server tidak akan mengarang fakta marketplace.')}</small></div><div class="marketplace-grid"><span>Harga: <b>${d.price?('Rp '+Number(d.price).toLocaleString('id-ID')):'tidak tersedia'}</b></span><span>Toko: <b>${esc(d.shopName||'-')}</b></span><span>Komisi: <b>${d.commissionRate!==''?esc(d.commissionRate)+'%':'-'}</b></span><span>Terjual: <b>${d.unitsSold!==''&&d.unitsSold!==undefined?Number(d.unitsSold).toLocaleString('id-ID'):'-'}</b></span><span>Rating: <b>${d.rating||'-'}</b></span><span>Ulasan: <b>${d.reviews?Number(d.reviews).toLocaleString('id-ID'):'-'}</b></span></div>${d.notice?`<p class="note">${esc(d.notice)}</p>`:''}`;
   if(!product.sourceVerified)return setStatus('Data produk belum terverifikasi. Unggah screenshot halaman produk, jalankan verifikasi, lalu konfirmasi hasil OCR/AI sebelum membuat konten.',false);
   setStatus('AI hanya digunakan untuk konten teks. Data fakta marketplace dipertahankan dari sumber verifikasi...');
   const ai=await fetch('/api/ai-product-content',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product:{...product,sourceDescription:d.summary||'',sourceHost:d.source||'',imageUrl:d.image||'',imageData:image},generateImages:false,imageCount:0})});
   const ad=await ai.json(); if(!ai.ok)throw Error(ad.error||'Gagal membuat konten');
   const c=ad.content||{};
-  product={...product,...c,affiliateUrl:product.affiliateUrl,image:product.image,images:gallery,name:product.sourceVerified?product.name:(c.name||product.name),brand:product.sourceVerified?product.brand:(c.brand||product.brand),category:product.sourceVerified?product.category:(c.category||product.category),price:product.price,oldPrice:product.oldPrice,rating:product.rating,reviews:product.reviews,shopName:product.shopName,commissionRate:product.commissionRate,commissionAmount:product.commissionAmount,unitsSold:product.unitsSold,stock:product.stock,priceMin:product.priceMin,priceMax:product.priceMax,oldPriceMin:product.oldPriceMin,oldPriceMax:product.oldPriceMax,marketplace:product.marketplace,dataSource:product.dataSource,sourceVerified:product.sourceVerified,sourceMethod:product.sourceMethod,sourceCheckedAt:product.sourceCheckedAt,finalUrl:product.finalUrl,sourceSignals:product.sourceSignals,redirectChain:product.redirectChain};
+  product={...product,...c,affiliateUrl:product.affiliateUrl,image:product.image,images:gallery,name:product.sourceVerified?product.name:(c.name||product.name),brand:product.sourceVerified?product.brand:(c.brand||product.brand),category:product.sourceVerified?product.category:(c.category||product.category),price:product.price,oldPrice:product.oldPrice,rating:product.rating,reviews:product.reviews,shopName:product.shopName,commissionRate:product.commissionRate,commissionAmount:product.commissionAmount,unitsSold:product.unitsSold,stock:product.stock,priceMin:product.priceMin,priceMax:product.priceMax,oldPriceMin:product.oldPriceMin,oldPriceMax:product.oldPriceMax,marketplace:product.marketplace,dataSource:product.dataSource,sourceVerified:product.sourceVerified,sourceFactLock:product.sourceFactLock,sourceMethod:product.sourceMethod,sourceCheckedAt:product.sourceCheckedAt,finalUrl:product.finalUrl,sourceSignals:product.sourceSignals,redirectChain:product.redirectChain,specs:product.sourceFactLock?product.specs:(c.specs||product.specs),seoTitle:c.seoTitle||product.seoTitle,metaDescription:c.metaDescription||product.metaDescription,caption:c.caption||product.caption,faq:c.faq||product.faq,pros:c.pros||product.pros,cons:c.cons||product.cons,summary:c.summary||product.summary};
   products.unshift(product); $('#imagePreview').innerHTML=gallery.map((src,i)=>`<img src="${src}" alt="Foto produk ${i+1}">`).join(''); $('#aiImagePreview').innerHTML=`<div class="ai-preview-title">📸 ${gallery.length} foto tersimpan sementara</div><div class="ai-preview-grid">${gallery.map((src,i)=>`<img src="${src}" alt="Foto produk ${i+1}">`).join('')}</div>`;
   let msg=(d.sourceVerified?'Data produk berhasil diverifikasi. ':'Data produk belum terverifikasi penuh. ')+`${gallery.length} foto tersimpan. `; if(ad.imageNotice)msg+=ad.imageNotice+' '; msg+='Periksa lalu klik Simpan & Publish.'; setStatus(msg,true); render(); window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
  }catch(e){setStatus('Gagal membuat produk otomatis: '+e.message,false)}
 };
 $('#file').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{if(f.name.toLowerCase().endsWith('.xlsx')){if(!window.XLSX)throw Error('Parser Excel belum tersedia.');const data=await f.arrayBuffer();const wb=XLSX.read(data,{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];products=XLSX.utils.sheet_to_json(ws,{defval:''}).map(x=>({...x,active:x.active!==false&&String(x.active).toLowerCase()!=='false'}));}else{const t=await f.text();products=f.name.toLowerCase().endsWith('.json')?JSON.parse(t):parseCSV(t)}setStatus(`Import preview: ${products.length} produk. Periksa lalu klik Simpan & Publish.`);render()}catch(err){setStatus('Import gagal: '+err.message,false)}};
-$('#publish').onclick=async()=>{if(!token)token='session';if(!products.length)return setStatus('Katalog kosong.',false);const blocked=products.filter(p=>!String(p.name||'').trim()||!String(p.category||'').trim()||String(p.category).toLowerCase()==='belum ditentukan'||String(p.name).toLowerCase()==='produk belum teridentifikasi'|| (p.verificationRequired===true && p.sourceVerified!==true));if(blocked.length)return setStatus(`${blocked.length} produk belum siap dipublish. pastikan nama/kategori benar dan produk berstatus terverifikasi; produk yang belum terverifikasi tidak dapat dipublish.`,false);setStatus('Menyimpan ke GitHub...');try{const r=await fetch('/api/admin-products',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({products})});const d=await r.json();if(!r.ok)throw Error(d.error||'Gagal menyimpan');setStatus(`Berhasil dipublish: ${d.products} produk (${d.active} aktif). Commit ${d.commit||'-'}. Vercel akan membuat deployment baru jika repository terhubung.`)}catch(e){setStatus(e.message,false)}};
+$('#publish').onclick=async()=>{if(!token)token='session';if(!products.length)return setStatus('Katalog kosong.',false);const blocked=products.filter(p=>{const contentOk=String(p.summary||'').trim()&&String(p.seoTitle||'').trim()&&String(p.metaDescription||'').trim()&&String(p.caption||'').trim()&&Array.isArray(p.pros)&&p.pros.length&&Array.isArray(p.cons)&&p.cons.length&&Array.isArray(p.faq)&&p.faq.length&&p.specs&&Object.keys(p.specs).length;return !String(p.name||'').trim()||!String(p.category||'').trim()||String(p.category).toLowerCase()==='belum ditentukan'||String(p.name).toLowerCase()==='produk belum teridentifikasi'||!contentOk||(p.verificationRequired===true&&p.sourceVerified!==true)});if(blocked.length)return setStatus(`${blocked.length} produk belum lengkap. Pastikan data sumber terverifikasi dan semua kolom konten (ringkasan, SEO, meta, kelebihan, pertimbangan, spesifikasi, FAQ, caption) sudah terisi.`,false);setStatus('Menyimpan ke GitHub...');try{const r=await fetch('/api/admin-products',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({products})});const d=await r.json();if(!r.ok)throw Error(d.error||'Gagal menyimpan');setStatus(`Berhasil dipublish: ${d.products} produk (${d.active} aktif). Commit ${d.commit||'-'}. Vercel akan membuat deployment baru jika repository terhubung.`)}catch(e){setStatus(e.message,false)}};
 
 (async()=>{try{const r=await fetch('/api/admin-products',{credentials:'same-origin'});if(r.ok)showAdmin();else showLogin()}catch(_){showLogin()}})();
