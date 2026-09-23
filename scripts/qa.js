@@ -12,7 +12,8 @@ const run = (cmd) => {
   catch (e) { failures.push(`${cmd}\n${e.stdout || ''}${e.stderr || ''}`); return ''; }
 };
 
-console.log('V52 Hobby-Compatible Production QA starting...');
+console.log('V57 Hobby-Compatible Production QA starting...');
+run('node scripts/test-marketplace-reader.js');
 run('node scripts/validate.js');
 run('node scripts/admin-check.js');
 run('node scripts/generate.js');
@@ -109,10 +110,10 @@ const request = (port,p) => new Promise(resolve => {
   for (const p of smoke) { const status=await request(port,p); if (status !== 200) failures.push(`HTTP smoke ${p}: expected 200, got ${status}`); }
   await new Promise(r=>server.close(r));
   if (failures.length) {
-    console.error(`\nV52 FINAL PRODUCTION QA FAILED (${failures.length} issue(s))`);
+    console.error(`\nV57 FINAL PRODUCTION QA FAILED (${failures.length} issue(s))`);
     console.error(failures.join('\n---\n'));
     process.exit(1);
   }
-  console.log(`V52 FINAL PRODUCTION QA PASS: ${htmlFiles.length} HTML, ${locs.length} sitemap URLs, ${smoke.length} HTTP routes.`);
+  console.log(`V57 FINAL PRODUCTION QA PASS: ${htmlFiles.length} HTML, ${locs.length} sitemap URLs, ${smoke.length} HTTP routes.`);
   if (notes.length) console.log(notes.join('\n'));
 })();
