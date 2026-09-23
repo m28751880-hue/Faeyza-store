@@ -191,6 +191,49 @@ function shopeeUrlHints(url){
   const m2=s.match(/-i\.(\d+)\.(\d+)(?:[/?#]|$)/i);
   return {shopId:m1?.[1]||m2?.[1]||'',itemId:m1?.[2]||m2?.[2]||''};
 }
+async function shopeeAffiliateApiLookup({url,title}){
+  const appId=String(process.env.SHOPEE_APP_ID||process.env.SHOPEE_AFFILIATE_APP_ID||'').trim();
+  const secret=String(process.env.SHOPEE_APP_SECRET||process.env.SHOPEE_AFFILIATE_SECRET||'').trim();
+  if(!appId||!secret) return {enabled:false,verified:false,method:'official-api-not-configured'};
+  const endpoint=String(process.env.SHOPEE_AFFILIATE_ENDPOINT||'https://open-api.affiliate.shopee.co.id/graphql').trim();
+  const hints=shopeeUrlHints(url);
+  const fields=`itemId commissionRate sellerCommissionRate shopeeCommissionRate commission sales priceMax priceMin productCatIds ratingStar priceDiscountRate imageUrl productName shopId shopName shopType productLink offerLink periodStartTime periodEndTime`;
+  const makeRequest=async variables=>{
+    const query=`query ProductOffer($shopId: Int64, $itemId: Int64, $keyword: String, $page: Int, $limit: Int) { productOfferV2(shopId: $shopId, itemId: $itemId, keyword: $keyword, page: $page, limit: $limit) { nodes { ${fields} } pageInfo { page limit hasNextPage } } }`;
+    const payload=JSON.stringify({query,operationName:'ProductOffer',variables});
+    const timestamp=Math.floor(Date.now()/1000).toString();
+    const signature=crypto.createHash('sha256').update(appId+timestamp+payload+secret).digest('hex');
+    const r=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json','accept':'application/json','Authorization':`SHA256 Credential=${appId}, Timestamp=${timestamp}, Signature=${signature}`},body:payload,signal:AbortSignal.timeout(12000)});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(`Shopee Affiliate API HTTP ${r.status}`);
+    if(Array.isArray(d.errors)&&d.errors.length) throw new Error(d.errors[0]?.message||'Shopee Affiliate API mengembalikan error');
+    return d?.data?.productOfferV2?.nodes||[];
+  };
+  try{
+    let nodes=[];
+    if(hints.shopId&&hints.itemId){
+      nodes=await makeRequest({shopId:Number(hints.shopId),itemId:Number(hints.itemId),page:1,limit:1});
+      if(nodes.length) return {enabled:true,verified:true,method:'official-api-id-match',product:nodes[0]};
+    }
+    const keyword=clean(title);
+    if(keyword && !/^Produk belum teridentifikasi$/i.test(keyword)){
+      nodes=await makeRequest({keyword,page:1,limit:20});
+      const ranked=nodes.map(p=>({p,score:scoreFeedProduct({name:p.productName},keyword)})).sort((a,b)=>b.score-a.score);
+      if(ranked[0]&&ranked[0].score>=6) return {enabled:true,verified:true,method:'official-api-title-match',product:ranked[0].p};
+    }
+    return {enabled:true,verified:false,method:'official-api-no-match'};
+  }catch(e){return {enabled:true,verified:false,method:'official-api-error',error:e.message};}
+}
+function normalizeShopeeAffiliateApi(p){
+  if(!p)return{};
+  const rawRate=p.commissionRate??''; const rate=rawRate===''?'':Number(rawRate);
+  const commissionRate=rate===''?'':(Number.isFinite(rate)?(rate<=1?rate*100:rate):'');
+  const priceMin=num(p.priceMin), priceMax=num(p.priceMax), price=priceMin!==''?priceMin:num(p.priceMax);
+  const discount=num(p.priceDiscountRate);
+  const oldPrice=price!==''&&discount>0?Math.round(price/(1-discount/100)):'';
+  return {name:clean(p.productName),shopName:clean(p.shopName),image:clean(p.imageUrl),price,oldPrice,priceMin,priceMax,oldPriceMin:oldPrice,oldPriceMax:oldPrice,rating:num(p.ratingStar),reviews:'',commissionRate,commissionAmount:num(p.commission),unitsSold:num(p.sales),stock:'',category:'',brand:'',productId:String(p.itemId??''),detailLink:clean(p.productLink),affiliateOfferLink:clean(p.offerLink),dataSource:'Shopee Affiliate Open API',sourceVerified:true,verificationLevel:'official-api'};
+}
+
 async function shopeeFeedLookup({url,title}){
   const feedUrl=String(process.env.SHOPEE_FEED_URL||'').trim();
   if(!feedUrl) return {enabled:false,verified:false,method:'no-feed-configured'};
@@ -311,9 +354,11 @@ module.exports=async function(req,res){
     const r=fetched.r; if(!r.ok)throw new Error(`Sumber mengembalikan HTTP ${r.status}`); const html=await r.text();
     const page=parseProductPage(html,fetched.u.toString()); const sourceMetaTitle=clean(first(html,['og:title','twitter:title']))||htmlTitle(html); const fileTitle=clean(b.fileName||''); const fallbackTitle=/^(IMG|DSC|DCIM|WA|Screenshot|Screen Shot|Photo|Foto|Image)[ _-]?\d{3,}/i.test(fileTitle)?'Produk belum teridentifikasi':fileTitle.replace(/\.[^.]+$/,'').replace(/[-_]+/g,' '); const title=page.title||sourceMetaTitle||fallbackTitle||'Produk belum teridentifikasi'; const category=page.rawLd?.category?.name||page.rawLd?.category||inferCategory(title); const g=generated(title,category);
     let marketplace={enabled:false}; const host=fetched.u.hostname.toLowerCase();
-    if(/(^|\.)shopee\.|(^|\.)shp\.ee$/i.test(host)) marketplace=await shopeeFeedLookup({url:fetched.u.toString(),title:page.title||title});
-    else if(/(^|\.)tiktok\.com$|^vt\.tokopedia\.com$/i.test(host)) marketplace=await tiktokLookup({title});
-    const apiData=marketplace.product?(marketplace.method?.startsWith('official-feed')?normalizeShopeeFeed(marketplace.product):normalizeTikTok(marketplace.product)):{}; const merged={...page,...apiData};
+    if(/(^|\.)shopee\.|(^|\.)shp\.ee$/i.test(host)){
+      marketplace=await shopeeAffiliateApiLookup({url:fetched.u.toString(),title:page.title||title});
+      if(!marketplace.verified) marketplace=await shopeeFeedLookup({url:fetched.u.toString(),title:page.title||title});
+    } else if(/(^|\.)tiktok\.com$|^vt\.tokopedia\.com$/i.test(host)) marketplace=await tiktokLookup({title});
+    const apiData=marketplace.product?(marketplace.method?.startsWith('official-api')?normalizeShopeeAffiliateApi(marketplace.product):marketplace.method?.startsWith('official-feed')?normalizeShopeeFeed(marketplace.product):normalizeTikTok(marketplace.product)):{}; const merged={...page,...apiData};
     const hasLiveFacts=[merged.price,merged.commissionRate,merged.rating,merged.reviews,merged.unitsSold].some(v=>v!==''&&v!==null&&v!==undefined);
     const verificationLevel=apiData.verificationLevel||((hasLiveFacts)?'live-page':'unverified');
     const sourceVerified=verificationLevel!=='unverified';
@@ -325,4 +370,4 @@ module.exports=async function(req,res){
   }
 };
 module.exports.config={maxDuration:40};
-module.exports._test = { parseProductPage, marketplaceSignals, attrMeta, rawStringField, rawNumberField, shopeeTextHints, shopeeUrlHints, inferCategory, inferBrand, classifyHost, linkSignals, parseGoogleTarget, scoreFeedProduct, normalizeShopeeFeed };
+module.exports._test = { parseProductPage, marketplaceSignals, attrMeta, rawStringField, rawNumberField, shopeeTextHints, shopeeUrlHints, inferCategory, inferBrand, classifyHost, linkSignals, parseGoogleTarget, scoreFeedProduct, normalizeShopeeFeed, shopeeAffiliateApiLookup, normalizeShopeeAffiliateApi };
