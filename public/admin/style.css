@@ -18,3 +18,14 @@ body{font-family:system-ui,sans-serif;margin:0;background:#f6f7f9;color:#18202a}
 #verificationPreview{margin-top:10px}.marketplace-status{margin-top:12px}.marketplace-status .marketplace-badge{display:inline-block;margin-bottom:8px}.marketplace-status .marketplace-badge.verified{font-weight:700}.marketplace-status .marketplace-badge.unverified{font-weight:700}.verification-help{padding:10px;border:1px dashed currentColor;border-radius:10px}
 
 .screenshot-field{padding:10px;border:2px dashed #9ca3af;border-radius:12px;background:#fafafa}.screenshot-field span{font-weight:800;font-size:14px}.screenshot-field input{width:100%;box-sizing:border-box}.screenshot-field small{color:#667085}.verification-card{grid-column:1/-1;margin-top:4px;padding:12px;border:2px solid #111827;border-radius:12px;background:#fff}.verification-title{font-weight:800;font-size:15px;margin-bottom:6px}.verification-help{padding:10px;border-radius:10px;background:#f8fafc;line-height:1.5}.verification-card #verificationPreview{margin-top:10px}.verification-card #verificationPreview img{max-width:min(100%,520px);max-height:520px;object-fit:contain}.verification-card:has(#verificationPreview:not(:empty)){border-style:solid}
+
+/* V66: editable screenshot verification facts */
+.ocr-edit-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0}
+.ocr-edit-field{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600}
+.ocr-edit-field input{width:100%;box-sizing:border-box}
+@media(max-width:760px){.ocr-edit-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:430px){.ocr-edit-grid{grid-template-columns:1fr}}
+/* V66: lengkapkan pemeriksaan OCR dan indikator kelengkapan konten */
+.ocr-spec-field{display:grid;gap:5px;margin:8px 0;font-size:12px;font-weight:600}
+.ocr-spec-field textarea{width:100%;min-height:100px;box-sizing:border-box;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+.ocr-edit-field input,.ocr-spec-field textarea{background:#fff}
