@@ -29,3 +29,16 @@ body{font-family:system-ui,sans-serif;margin:0;background:#f6f7f9;color:#18202a}
 .ocr-spec-field{display:grid;gap:5px;margin:8px 0;font-size:12px;font-weight:600}
 .ocr-spec-field textarea{width:100%;min-height:100px;box-sizing:border-box;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
 .ocr-edit-field input,.ocr-spec-field textarea{background:#fff}
+
+
+/* V70 — Premium admin workspace */
+:root{--a-ink:#181715;--a-gold:#b58a45;--a-paper:#fffdf9;--a-cream:#f7f3eb;--a-line:#e8e0d4}
+body{font-family:Inter,system-ui,sans-serif;background:radial-gradient(circle at 90% 0,rgba(181,138,69,.08),transparent 28%),var(--a-cream);color:var(--a-ink)}
+main{max-width:1240px;padding:24px 20px}.admin-nav{padding:12px 16px;background:rgba(255,253,249,.9);border:1px solid var(--a-line);border-radius:14px;box-shadow:0 6px 24px rgba(36,27,16,.05)}
+.admin-nav a{color:#5c5449}.admin-nav a:first-child:before{content:'F';display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;margin-right:8px;background:#181715;color:#d7b979;font-family:Georgia,serif}
+#adminApp>header{position:static;display:block;height:auto;min-height:0;padding:20px 22px;background:#181715;color:#f5ede0;border-radius:20px;margin:14px 0;border:0;box-shadow:0 18px 45px rgba(24,23,21,.13)}
+#adminApp>header h1{font-family:Georgia,serif;font-size:30px;margin:0 0 6px;color:#f5ede0}#adminApp>header p{color:#bfb5a6;line-height:1.6;font-size:12px}
+.card,.quick-add{background:var(--a-paper);border:1px solid var(--a-line);border-radius:18px;box-shadow:0 8px 28px rgba(44,34,22,.045)}
+.quick-add{border:1px solid var(--a-line)}button,input,textarea,select{border-color:#ddd5c9;border-radius:10px;background:#fffdf9}button.primary{background:#181715;color:#fff;border-color:#181715}.ok{border-left-color:var(--a-gold)}
+.screenshot-field{border-color:#d2b77f;background:#fcf8ef}.verification-card{border-color:#2b2926;background:#fffdf9}.marketplace-status{background:#faf6ee;border-color:#e4d8c5}
+.login-card{background:#fffdf9;border-color:var(--a-line);box-shadow:0 22px 70px rgba(37,28,18,.1)}.login-logo{font-family:Georgia,serif;color:#d7b979;background:#181715;border-radius:15px;width:52px;height:52px;display:grid;place-items:center}
