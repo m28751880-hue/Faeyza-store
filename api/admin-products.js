@@ -7,13 +7,27 @@ function auth(req) { return adminAuth(req); }
 function safeSlug(v) {
   return String(v || '').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 }
+const NOT_AVAILABLE='Tidak tercantum pada sumber yang diverifikasi.';
+function fill(v){return v===undefined||v===null||String(v).trim()===''?NOT_AVAILABLE:String(v).trim();}
 function normalizeProduct(p) {
   const name = String(p.name || '').trim();
   const slug = safeSlug(p.slug || name);
   const price = p.price === '' || p.price == null ? '' : Number(p.price);
   const rating = p.rating === '' || p.rating == null ? '' : Number(p.rating);
   const reviews = p.reviews === '' || p.reviews == null ? '' : Number(p.reviews);
-  return { ...p, name, slug, price: Number.isFinite(price) ? price : '', rating: Number.isFinite(rating) ? rating : '', reviews: Number.isFinite(reviews) ? reviews : '', active: p.active !== false };
+  const normalized={ ...p, name, slug, price: Number.isFinite(price) ? price : '', rating: Number.isFinite(rating) ? rating : '', reviews: Number.isFinite(reviews) ? reviews : '', active: p.active !== false };
+  const factKeys=['brand','oldPrice','unitsSold','shopName','stock','commissionRate','commissionAmount','priceMin','priceMax','oldPriceMin','oldPriceMax','marketplace','productId','detailLink','affiliateUrl','image','dataSource','sourceMethod','sourceCheckedAt'];
+  for(const k of factKeys) normalized[k]=fill(normalized[k]);
+  if(!String(normalized.summary||'').trim()) normalized.summary=`Informasi produk ${name||'ini'} dirangkum dari data sumber yang tersedia.`;
+  if(!String(normalized.seoTitle||'').trim()) normalized.seoTitle=`${name||'Produk'} — Spesifikasi & Cek Harga | Faeyza Store`;
+  if(!String(normalized.metaDescription||'').trim()) normalized.metaDescription=`Lihat ${name||'produk ini'}, data produk, spesifikasi, dan harga yang tercatat di Faeyza Store.`;
+  if(!String(normalized.caption||'').trim()) normalized.caption=`${name||'Produk'} — cek data produk dan harga di Faeyza Store.`;
+  if(!Array.isArray(normalized.pros)||!normalized.pros.length) normalized.pros=['Keunggulan belum dapat dipastikan dari sumber yang diverifikasi.'];
+  if(!Array.isArray(normalized.cons)||!normalized.cons.length) normalized.cons=['Detail yang tidak tercantum pada sumber perlu diperiksa kembali di halaman toko.'];
+  if(!normalized.specs||typeof normalized.specs!=='object'||Array.isArray(normalized.specs)) normalized.specs={};
+  if(!Object.keys(normalized.specs).length) normalized.specs={'Informasi tambahan':NOT_AVAILABLE};
+  if(!Array.isArray(normalized.faq)||!normalized.faq.length) normalized.faq=[{q:'Di mana memeriksa detail terbaru?',a:'Periksa halaman produk atau toko pada link sumber.'}];
+  return normalized;
 }
 async function readProducts() {
   return JSON.parse(await fs.readFile(path.join(process.cwd(),'products.json'),'utf8'));
@@ -53,6 +67,10 @@ module.exports = async function handler(req,res){
       if(String(p.category||'').trim().toLowerCase()==='workspace' || String(p.name||'').trim().toLowerCase()==='produk belum teridentifikasi' || /^(IMG|DSC|DCIM|WA|Screenshot|Screen Shot|Photo|Foto|Image)[ _-]?\d{3,}/i.test(String(p.name||'').trim())) return res.status(400).json({ok:false,error:`Identitas produk masih berupa fallback: ${p.name||'(tanpa nama)'}.`});
       if(seen.has(p.slug)) return res.status(400).json({ok:false,error:`Slug duplikat: ${p.slug}`});
       seen.add(p.slug);
+      const required=['name','slug','category','brand','price','oldPrice','rating','reviews','unitsSold','shopName','stock','commissionRate','commissionAmount','priceMin','priceMax','oldPriceMin','oldPriceMax','marketplace','productId','detailLink','affiliateUrl','image','dataSource','sourceMethod','sourceCheckedAt','summary','seoTitle','metaDescription','caption'];
+      const missing=required.filter(k=>String(p[k]??'').trim()==='');
+      if(missing.length) return res.status(400).json({ok:false,error:`Produk belum lengkap: ${p.name}. Kolom kosong: ${missing.join(', ')}`});
+      if(!Array.isArray(p.pros)||!p.pros.length||!Array.isArray(p.cons)||!p.cons.length||!Array.isArray(p.faq)||!p.faq.length||!p.specs||typeof p.specs!=='object'||!Object.keys(p.specs).length) return res.status(400).json({ok:false,error:`Konten produk belum lengkap: ${p.name}.`});
       if(p.rating!=='' && (p.rating<0 || p.rating>5)) return res.status(400).json({ok:false,error:`Rating tidak valid: ${p.name}`});
       if(p.price!=='' && p.price<0) return res.status(400).json({ok:false,error:`Harga tidak valid: ${p.name}`});
     }
