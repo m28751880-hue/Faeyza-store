@@ -1,8 +1,12 @@
 let products=[],token='';
 const $=s=>document.querySelector(s);
+const SCREENSHOT_STATE_KEY='faeyza:screenshot-verification:v64';
 const loginGate=$('#loginGate'),adminApp=$('#adminApp'),loginStatus=$('#loginStatus');
+function persistVerifiedScreenshot(state){try{if(!state){sessionStorage.removeItem(SCREENSHOT_STATE_KEY);return;}const copy={...state,imageData:state.imageData||''};sessionStorage.setItem(SCREENSHOT_STATE_KEY,JSON.stringify(copy));}catch(_){} }
+function clearVerifiedScreenshot(){window.__verifiedScreenshot=null;persistVerifiedScreenshot(null)}
+function restoreVerifiedScreenshot(){try{const raw=sessionStorage.getItem(SCREENSHOT_STATE_KEY);if(!raw)return;const d=JSON.parse(raw);if(!d||!d.name&&!d.imageData)return;window.__verifiedScreenshot=d;if(d.affiliateUrl)$('#quickUrl').value=d.affiliateUrl;if(d.imageData){$('#verificationPreview').innerHTML=`<div class="ai-preview-title">🔎 Screenshot verifikasi dipulihkan dari sesi sebelumnya</div><img src="${esc(d.imageData)}" alt="Screenshot halaman produk"><p class="note">Data screenshot tetap dipakai sampai kamu mengganti screenshot atau link.</p>`;$('#verificationPreview').dataset.data=d.imageData;}if(d.sourceVerified)renderOcrReview(d);setStatus(d.sourceVerified?'Verifikasi screenshot dipulihkan. Data ini akan dipakai sebagai sumber utama saat membuat konten.':'Kandidat OCR dipulihkan. Periksa lalu konfirmasi sebelum membuat konten.',Boolean(d.sourceVerified));}catch(_){clearVerifiedScreenshot()}}
 function showLogin(){loginGate.hidden=false;adminApp.hidden=true;$('#adminPassword').focus()}
-function showAdmin(){loginGate.hidden=true;adminApp.hidden=false;load().then(()=>{if(sanitizeLegacyProducts())render()})}
+function showAdmin(){loginGate.hidden=true;adminApp.hidden=false;load().then(()=>{if(sanitizeLegacyProducts())render();restoreVerifiedScreenshot()})}
 async function login(){const password=$('#adminPassword').value;loginStatus.textContent='Memeriksa...';try{const r=await fetch('/api/admin-products',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'login',password})});const d=await r.json();if(!r.ok)throw Error(d.error||'Login gagal');$('#adminPassword').value='';loginStatus.textContent='Login berhasil.';showAdmin()}catch(e){loginStatus.textContent=e.message;}}
 $('#loginButton').onclick=login;$('#adminPassword').addEventListener('keydown',e=>{if(e.key==='Enter')login()});
 $('#logout').onclick=async()=>{try{await fetch('/api/admin-products',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'logout'})})}catch(_){} showLogin()};const esc=s=>String(s??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
@@ -39,7 +43,7 @@ function parseCSV(t){const rows=[];let row=[],cell='',quote=false;for(let i=0;i<
 async function imageData(file,max=1200,quality=.78){if(!file)return '';return await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const scale=Math.min(1,max/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.width*scale));c.height=Math.max(1,Math.round(im.height*scale));const ctx=c.getContext('2d');ctx.drawImage(im,0,0,c.width,c.height);resolve(c.toDataURL('image/jpeg',quality))};im.onerror=reject;im.src=r.result};r.onerror=reject;r.readAsDataURL(file)})}
 async function compactDataUrl(dataUrl){if(!dataUrl||!dataUrl.startsWith('data:image/'))return dataUrl;return await new Promise((resolve)=>{const im=new Image();im.onload=()=>{const max=900,scale=Math.min(1,max/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.width*scale));c.height=Math.max(1,Math.round(im.height*scale));c.getContext('2d').drawImage(im,0,0,c.width,c.height);resolve(c.toDataURL('image/jpeg',.65))};im.onerror=()=>resolve(dataUrl);im.src=dataUrl})}
 $('#quickImage').onchange=async e=>{const files=[...e.target.files].slice(0,5);if(!files.length)return;try{if(e.target.files.length>5){setStatus('Maksimal 5 foto. Hanya 5 foto pertama yang dipakai.',false)}const images=[];for(const f of files){images.push(await imageData(f,1100,.72))}$('#imagePreview').innerHTML=images.map((d,i)=>`<img src="${d}" alt="Foto produk ${i+1}">`).join('');$('#imagePreview').dataset.data=images[0]||'';$('#imagePreview').dataset.gallery=JSON.stringify(images);$('#aiImagePreview').innerHTML=`<div class="ai-preview-title">📸 ${images.length} foto manual siap — foto pertama menjadi foto utama</div><div class="ai-preview-grid">${images.map((src,i)=>`<img src="${src}" alt="Foto manual ${i+1}">`).join('')}</div>`;setStatus(`${images.length} foto manual siap. Klik Buat Konten Otomatis untuk membaca link dan mengisi konten teks.`,true)}catch(err){setStatus('Foto gagal diproses: '+err.message,false)}};
-$('#quickScreenshot').onchange=async e=>{const f=e.target.files[0];if(!f)return;window.__verifiedScreenshot=null;try{const d=await imageData(f,1400,.68);$('#verificationPreview').innerHTML=`<div class="ai-preview-title">🔎 Screenshot siap — ${esc(f.name||'screenshot')}</div><img src="${d}" alt="Screenshot halaman produk"><p class="note">Pastikan nama produk dan minimal satu detail pendukung terlihat jelas.</p>`;$('#verificationPreview').dataset.data=d;$('#marketplaceStatus').innerHTML='';setStatus('Screenshot siap. Sekarang klik Verifikasi dari Screenshot.',true)}catch(err){setStatus('Screenshot gagal diproses: '+err.message,false)}};
+$('#quickScreenshot').onchange=async e=>{const f=e.target.files[0];if(!f)return;clearVerifiedScreenshot();try{const d=await imageData(f,1400,.68);$('#verificationPreview').innerHTML=`<div class="ai-preview-title">🔎 Screenshot siap — ${esc(f.name||'screenshot')}</div><img src="${d}" alt="Screenshot halaman produk"><p class="note">Pastikan nama produk dan minimal satu detail pendukung terlihat jelas.</p>`;$('#verificationPreview').dataset.data=d;$('#marketplaceStatus').innerHTML='';setStatus('Screenshot siap. Sekarang klik Verifikasi dari Screenshot.',true)}catch(err){setStatus('Screenshot gagal diproses: '+err.message,false)}};
 
 function parseOcrProductText(text){
  const raw=String(text||'').replace(/\r/g,'');
@@ -47,25 +51,32 @@ function parseOcrProductText(text){
  const joined=lines.join(' ');
  const moneyToNumber=(v)=>{if(!v)return '';let x=String(v).replace(/Rp\.?\s*/ig,'').replace(/\s/g,'').replace(/[^0-9.,]/g,'');if(!x)return '';if(x.includes('.')&&x.includes(','))x=x.replace(/\./g,'').replace(',','.');else if(x.includes('.')&&/\.\d{3}$/.test(x))x=x.replace(/\./g,'');else if(x.includes(',')&&/,\d{3}$/.test(x))x=x.replace(/,/g,'');else x=x.replace(/,/g,'.');const n=Number(x);return Number.isFinite(n)?Math.round(n):''};
  const priceMatches=[...raw.matchAll(/Rp\.?\s*([0-9][0-9.\s]*(?:,[0-9]+)?)/ig)].map(m=>moneyToNumber(m[1])).filter(Boolean);
+ const uniquePrices=[...new Set(priceMatches)];
  const ratingM=raw.match(/(?:rating|penilaian|star|bintang)\s*[:\-]?\s*([0-5](?:[.,][0-9])?)/i) || raw.match(/\b([0-5][.,][0-9])\s*(?:\/\s*5|★|stars?)\b/i);
- const reviewsM=raw.match(/([0-9][0-9.,]*)\s*(?:ulasan|review|reviews)/i);
- const soldM=raw.match(/([0-9][0-9.,]*)\s*(?:terjual|sold|produk terjual)/i);
+ const reviewsM=raw.match(/(?:ulasan|review|reviews)\s*[:\-]?\s*([0-9][0-9.,]*)/i) || raw.match(/([0-9][0-9.,]*)[ \t]*(?:ulasan|review|reviews)/i);
+ const soldM=raw.match(/(?:terjual|sold|produk terjual)\s*[:\-]?\s*([0-9][0-9.,]*)/i) || raw.match(/([0-9][0-9.,]*)[ \t]*(?:terjual|sold|produk terjual)/i);
  const shopM=raw.match(/(?:toko|shop)\s*[:\-]?\s*([^\n|]{2,80})/i);
  const productIdM=raw.match(/(?:produk|product)\s*(?:id|kode)\s*[:#\-]?\s*([A-Za-z0-9_-]{4,})/i);
- const price=priceMatches.length?priceMatches[0]:'';
- let oldPrice=priceMatches.length>1?priceMatches[1]:'';
- // If the screenshot contains a struck-through old price, OCR often puts the higher value first.
- if(priceMatches.length>1){const hi=Math.max(...priceMatches);const lo=Math.min(...priceMatches); if(lo!==hi){oldPrice=hi;}}
+ const price=uniquePrices.length?uniquePrices[0]:'';
+ // Jangan menganggap harga yang sama, yang muncul berulang karena UI Shopee, sebagai harga lama.
+ // Harga lama hanya diisi bila OCR menemukan angka harga lain yang benar-benar berbeda.
+ const oldCandidates=uniquePrices.filter(n=>n!==price);
+ const oldPrice=oldCandidates.length?Math.max(...oldCandidates):'';
  let name='';
- const bad=/^(rp|harga|terjual|rating|ulasan|review|toko|shop|bagikan|beli|checkout|gratis|voucher|diskon|home|beranda|detail|spesifikasi|deskripsi|produk|shopee|follow|chat|online|varian|warna|ukuran)\b/i;
+ const bad=/^(rp|harga|terjual|rating|ulasan|review|toko|shop|bagikan|beli|checkout|gratis|voucher|diskon|home|beranda|detail|spesifikasi|deskripsi|produk|shopee|follow|chat|online|varian|warna|ukuran|pilih|opsi|jumlah|komentar|penilaian)\b/i;
+ const titleCandidates=[];
  for(const line of lines){
    const clean=line.replace(/^[•·|>]+\s*/,'').trim();
    if(clean.length<8||clean.length>180||bad.test(clean)) continue;
    if(/https?:\/\//i.test(clean)||/Rp\.?\s*\d/i.test(clean)||/\d+%/.test(clean)) continue;
    if(/^(?:[0-9\s.,]+|[A-Z0-9_-]{1,12})$/.test(clean)) continue;
-   if(!name || clean.length>name.length) name=clean;
-   if(name.length>90)break;
+   if(/^(?:variasi|variant|warna|ukuran|size|pilih)\s*[:：]/i.test(clean)) continue;
+   const variationNoise=/\b(ld|lingkar dada|panjang|size|ukuran|warna|polka|cream|hitam|putih|merah|navy|coklat)\b/i.test(clean);
+   const score=(clean.split(/\s+/).length>=3?3:0)+(clean.length>=18?2:0)+(variationNoise?-3:0)+(lines.indexOf(line)<Math.max(1,lines.length/2)?2:0);
+   titleCandidates.push({text:clean,score});
  }
+ titleCandidates.sort((a,b)=>b.score-a.score||b.text.length-a.text.length);
+ name=titleCandidates[0]?.text||'';
  let brand='';
  const brandM=raw.match(/(?:brand|merek)\s*[:\-]\s*([^\n|]{2,60})/i); if(brandM)brand=brandM[1].trim();
  let category='';
@@ -89,8 +100,9 @@ async function runLocalScreenshotOCR(img){
 }
 function renderOcrReview(c){
  const rows=[['Nama',c.name],['Brand',c.brand],['Kategori',c.category],['Harga',c.price?('Rp '+Number(c.price).toLocaleString('id-ID')):''],['Harga lama',c.oldPrice?('Rp '+Number(c.oldPrice).toLocaleString('id-ID')):''],['Rating',c.rating],['Ulasan',c.reviews],['Terjual',c.unitsSold],['Toko',c.shopName]];
- $('#marketplaceStatus').innerHTML=`<div class="marketplace-badge ${c.sourceVerified?'unverified':'unverified'}">${c.sourceVerified?'⚠ Hasil OCR lokal — belum dikonfirmasi':'⚠ OCR belum menemukan bukti yang cukup'}</div><div class="marketplace-grid">${rows.map(([k,v])=>`<span>${k}: <b>${esc(v||'-')}</b></span>`).join('')}</div><p class="note">OCR hanya membaca teks yang terlihat. Periksa hasil terhadap screenshot. Jangan menganggap angka yang salah terbaca sebagai fakta.</p>${c.sourceVerified?'<button id="confirmOcr" class="primary">✅ Konfirmasi Data OCR</button>':''}`;
- const btn=$('#confirmOcr'); if(btn)btn.onclick=()=>{window.__verifiedScreenshot={...c,sourceVerified:true,verificationLevel:'screenshot-ocr-verified',verificationNote:'Dikonfirmasi pengguna setelah pemeriksaan hasil OCR.',confirmedByUser:true};setStatus('Data OCR dikonfirmasi. Sekarang klik Buat Konten Otomatis.',true);$('#marketplaceStatus').querySelector('.marketplace-badge').textContent='✓ Data screenshot dikonfirmasi pengguna';};
+ const verified=Boolean(c.sourceVerified);
+ $('#marketplaceStatus').innerHTML=`<div class="marketplace-badge ${verified?'verified':'unverified'}">${verified?(c.confirmedByUser?'✓ Data screenshot dikonfirmasi pengguna':'⚠ Hasil OCR lokal — belum dikonfirmasi'):'⚠ OCR belum menemukan bukti yang cukup'}</div><div class="marketplace-grid">${rows.map(([k,v])=>`<span>${k}: <b>${esc(v||'-')}</b></span>`).join('')}</div><p class="note">Sumber utama: screenshot produk yang kamu pilih. OCR hanya membaca teks yang terlihat; data dari halaman Shopee yang gagal dibaca otomatis tidak akan menggantikan data screenshot.</p>${verified&&!c.confirmedByUser?'<button id="confirmOcr" class="primary">✅ Konfirmasi Data OCR</button>':''}`;
+ const btn=$('#confirmOcr'); if(btn)btn.onclick=()=>{window.__verifiedScreenshot={...c,sourceVerified:true,verificationLevel:'screenshot-ocr-verified',verificationNote:'Dikonfirmasi pengguna setelah pemeriksaan hasil OCR.',confirmedByUser:true};persistVerifiedScreenshot(window.__verifiedScreenshot);setStatus('Data screenshot dikonfirmasi. Sekarang klik Buat Konten Otomatis. Data ini tidak akan diganti oleh kegagalan pembacaan halaman Shopee.',true);renderOcrReview(window.__verifiedScreenshot);};
 }
 
 $('#verifyScreenshot').onclick=async()=>{
@@ -114,14 +126,16 @@ $('#verifyScreenshot').onclick=async()=>{
      d=await runLocalScreenshotOCR(img);
      d.aiFallbackReason=String(aiErr.message||aiErr);
    }
-   window.__verifiedScreenshot={...d,imageData:img,affiliateUrl,sourceVerified:Boolean(d.sourceVerified),verificationLevel:d.verificationLevel||'unverified',checkedAt:d.checkedAt||new Date().toISOString()};
+   const persistedImage=await compactDataUrl(img);
+   window.__verifiedScreenshot={...d,imageData:persistedImage,affiliateUrl:d.productUrl||affiliateUrl,sourceVerified:Boolean(d.sourceVerified),verificationLevel:d.verificationLevel||'unverified',checkedAt:d.checkedAt||new Date().toISOString()};
+   persistVerifiedScreenshot(window.__verifiedScreenshot);
    if(d.sourceMethod==='browser-ocr'){
      $('#quickUrl').value=d.productUrl||affiliateUrl;
-     renderOcrReview(d);
+     renderOcrReview(window.__verifiedScreenshot);
      setStatus(d.sourceVerified?'OCR menemukan kandidat data. Periksa lalu klik Konfirmasi Data OCR.':'OCR belum cukup membaca screenshot. Gunakan screenshot yang lebih tajam.',d.sourceVerified);
    }else{
      $('#quickUrl').value=d.productUrl||affiliateUrl;
-     $('#marketplaceStatus').innerHTML=`<div class="marketplace-badge ${d.sourceVerified?'verified':'unverified'}">${d.sourceVerified?'✓ Data dibaca dari screenshot halaman produk':'⚠ Screenshot belum cukup untuk mengidentifikasi produk'}</div><div class="marketplace-grid"><span>Nama: <b>${esc(d.name||'-')}</b></span><span>Harga: <b>${d.price?('Rp '+Number(d.price).toLocaleString('id-ID')):'-'}</b></span><span>Toko: <b>${esc(d.shopName||'-')}</b></span><span>Rating: <b>${esc(d.rating||'-')}</b></span><span>Ulasan: <b>${d.reviews?Number(d.reviews).toLocaleString('id-ID'):'-'}</b></span><span>Terjual: <b>${d.unitsSold!==''&&d.unitsSold!==undefined?esc(d.unitsSold):'-'}</b></span></div><p class="note">Hanya fakta yang terlihat pada screenshot yang dipakai. Data yang tidak terlihat tetap kosong.</p>`;
+     $('#marketplaceStatus').innerHTML=`<div class="marketplace-badge ${d.sourceVerified?'verified':'unverified'}">${d.sourceVerified?'✓ Data diverifikasi dari screenshot halaman produk':'⚠ Screenshot belum cukup untuk mengidentifikasi produk'}</div><div class="marketplace-grid"><span>Nama: <b>${esc(d.name||'-')}</b></span><span>Harga: <b>${d.price?('Rp '+Number(d.price).toLocaleString('id-ID')):'-'}</b></span><span>Toko: <b>${esc(d.shopName||'-')}</b></span><span>Rating: <b>${esc(d.rating||'-')}</b></span><span>Ulasan: <b>${d.reviews?Number(d.reviews).toLocaleString('id-ID'):'-'}</b></span><span>Terjual: <b>${d.unitsSold!==''&&d.unitsSold!==undefined?esc(d.unitsSold):'-'}</b></span></div><p class="note">Sumber utama: screenshot halaman produk. Data yang tidak terlihat tetap kosong dan tidak diganti oleh hasil pembacaan halaman marketplace.</p>`;
      setStatus(d.sourceVerified?'Screenshot berhasil diverifikasi. Sekarang klik Buat Konten Otomatis.':'Screenshot belum cukup jelas. Gunakan screenshot yang menampilkan nama produk dan detail pendukung.',d.sourceVerified);
    }
  }catch(e){setStatus('Verifikasi screenshot gagal: '+e.message,false)}finally{b.disabled=false}
@@ -130,7 +144,10 @@ $('#auto').onclick=async()=>{
  token='session';
  const affiliateUrl=$('#quickUrl').value.trim();
  const files=[...$('#quickImage').files].slice(0,5);
- const verifiedShot=window.__verifiedScreenshot||null;
+ let verifiedShot=window.__verifiedScreenshot||null;
+ if(verifiedShot && verifiedShot.affiliateUrl && affiliateUrl && verifiedShot.affiliateUrl!==affiliateUrl && verifiedShot.productUrl!==affiliateUrl){
+   clearVerifiedScreenshot(); verifiedShot=null;
+ }
  if(verifiedShot&&!verifiedShot.sourceVerified)return setStatus('Hasil OCR belum dikonfirmasi. Klik Konfirmasi Data OCR sebelum membuat konten.',false);
  if(!affiliateUrl)return setStatus('Masukkan link produk/affiliate.',false);
  if(!files.length&&!verifiedShot)return setStatus('Masukkan foto produk atau verifikasi screenshot halaman produk terlebih dahulu.',false);
@@ -144,7 +161,7 @@ $('#auto').onclick=async()=>{
   let d;
   if(verifiedShot){
    const v=verifiedShot;
-   d={name:v.name||'',brand:v.brand||'',category:v.category||'Belum ditentukan',price:v.price||'',oldPrice:v.oldPrice||'',rating:v.rating||'',reviews:v.reviews||'',unitsSold:v.unitsSold||'',shopName:v.shopName||'',stock:v.stock||'',specs:v.specs||{},sourceVerified:Boolean(v.name),verificationLevel:v.name?'screenshot-verified':'unverified',dataSource:v.name?'Screenshot halaman produk':'Screenshot belum cukup',sourceMethod:v.name?'screenshot':'unverified',checkedAt:v.checkedAt||new Date().toISOString(),finalUrl:v.productUrl||affiliateUrl,source:'Shopee',sourceSignals:{source:'Shopee',initialHost:'',finalHost:'',redirects:[],note:'Data fakta diambil dari screenshot diberikan pengguna.'},redirectChain:[]};
+   d={name:v.name||'',brand:v.brand||'',category:v.category||'Belum ditentukan',price:v.price||'',oldPrice:v.oldPrice||'',rating:v.rating||'',reviews:v.reviews||'',unitsSold:v.unitsSold||'',shopName:v.shopName||'',stock:v.stock||'',specs:v.specs||{},sourceVerified:Boolean(v.sourceVerified&&v.name),verificationLevel:v.sourceVerified?'screenshot-ocr-verified':'unverified',dataSource:v.sourceVerified?'Screenshot halaman produk — data dikonfirmasi pengguna':'Screenshot belum cukup',sourceMethod:'screenshot',checkedAt:v.checkedAt||new Date().toISOString(),finalUrl:v.productUrl||affiliateUrl,source:'Shopee',sourceSignals:{source:'Shopee',initialHost:'',finalHost:'',redirects:[],note:'Data fakta diambil dari screenshot yang diberikan pengguna; tidak diganti oleh pembacaan halaman Shopee.'},redirectChain:[]};
    if(d.sourceVerified)$('#quickUrl').value=d.finalUrl||affiliateUrl;
   }else{
    const r=await fetch('/api/admin-product-inspect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({affiliateUrl:inspectUrl,fileName:files[0]?.name||'produk-screenshot.jpg'})});
