@@ -208,3 +208,13 @@ header{height:76px;padding:0 max(24px,calc((100% - 1240px)/2));background:rgba(2
 .visual>img{mix-blend-mode:multiply!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;box-shadow:none!important;background:transparent!important}
 .visual>img:hover{transform:none!important}
 .visual .visual-badge,.visual .save-button{mix-blend-mode:normal!important}
+
+/* V77 — remove ALL product visual overlay layers */
+.visual,.visual *{box-sizing:border-box!important;}
+.visual{position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;background:#fffdf9!important;background-image:none!important;border:0!important;box-shadow:none!important;}
+.visual::before,.visual::after{display:none!important!important;content:none!important;width:0!important;height:0!important;background:none!important;border:0!important;box-shadow:none!important;}
+.visual > img{display:block!important;position:relative!important;z-index:1!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;object-fit:contain!important;object-position:center!important;padding:0!important;margin:0!important;border:0!important;border-radius:0!important;background:transparent!important;filter:none!important;opacity:1!important;mix-blend-mode:normal!important;box-shadow:none!important;transform:none!important;}
+.visual > :not(img):not(.save-button):not(.visual-badge){display:none!important;}
+.visual .save-button{display:grid!important;position:absolute!important;z-index:3!important;}
+.visual .visual-badge{display:block!important;position:absolute!important;z-index:2!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;}
+.card:hover .visual img,.visual img:hover{transform:none!important;}
