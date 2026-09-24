@@ -42,7 +42,3 @@ main{max-width:1240px;padding:24px 20px}.admin-nav{padding:12px 16px;background:
 .quick-add{border:1px solid var(--a-line)}button,input,textarea,select{border-color:#ddd5c9;border-radius:10px;background:#fffdf9}button.primary{background:#181715;color:#fff;border-color:#181715}.ok{border-left-color:var(--a-gold)}
 .screenshot-field{border-color:#d2b77f;background:#fcf8ef}.verification-card{border-color:#2b2926;background:#fffdf9}.marketplace-status{background:#faf6ee;border-color:#e4d8c5}
 .login-card{background:#fffdf9;border-color:var(--a-line);box-shadow:0 22px 70px rgba(37,28,18,.1)}.login-logo{font-family:Georgia,serif;color:#d7b979;background:#181715;border-radius:15px;width:52px;height:52px;display:grid;place-items:center}
-/* V73 — typography reset: return admin text to the original familiar system sans font */
-html,body,*{font-family:Inter,Arial,sans-serif}
-.admin-nav a:first-child:before,#adminApp>header h1,.login-logo{font-family:Inter,Arial,sans-serif}
-.ocr-spec-field textarea{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
