@@ -203,3 +203,8 @@ header{height:76px;padding:0 max(24px,calc((100% - 1240px)/2));background:rgba(2
 
 /* V75: remove product-image overlay layers and normalize image centering */
 .visual::before,.visual::after{display:none!important;content:none!important}.visual{position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;background:#fffdf9!important}.visual>img{position:relative!important;inset:auto!important;display:block!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:auto!important;padding:0!important;object-fit:contain!important;object-position:center center!important;border:0!important;border-radius:0!important;filter:none!important;opacity:1!important;transform:none!important;z-index:1!important}.visual .visual-badge{z-index:2!important}.visual .save-button{z-index:3!important}
+/* V76: product card image cleanup — no decorative image layer/background */
+.visual{isolation:isolate!important;background:#fffdf9!important}
+.visual>img{mix-blend-mode:multiply!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;box-shadow:none!important;background:transparent!important}
+.visual>img:hover{transform:none!important}
+.visual .visual-badge,.visual .save-button{mix-blend-mode:normal!important}
